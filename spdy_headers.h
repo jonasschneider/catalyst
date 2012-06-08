@@ -11,5 +11,6 @@ typedef struct
 } spdy_headers_t;
 
 int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t source_len);
+int spdy_headers_dump(spdy_headers_t *headers);
 
 # endif

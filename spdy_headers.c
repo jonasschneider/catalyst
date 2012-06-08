@@ -117,5 +117,33 @@ int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t sour
 
     (void)inflateEnd(&strm);
 
+    headers->entry_count = (headers->data[0] << 8) + headers->data[1];
+
     return ret == Z_OK ? 0 : -1;
+}
+
+
+int spdy_headers_dump(spdy_headers_t *headers)
+{
+  int i, j;
+  printf("Headers (%u entries):\n", headers->entry_count);
+
+  int offset = 2;
+
+  for(i=0; i < headers->entry_count * 2; i++)
+  {
+    int len = (headers->data[offset] << 8) + headers->data[offset+1];
+    offset += 2;
+    for(j=0; j < len; j++)
+      printf("%c", headers->data[offset+j]);
+    if(i%2 == 0)
+    {
+      printf(" => ");
+    }
+    else
+    {
+      printf("\n");
+    }
+    offset += j;
+  }
 }

@@ -61,6 +61,8 @@ int spdy_frame_dump(spdy_frame_t *frame)
   printf("Frame type: %u\n", frame->control_frame_type);
   printf("Flags: %u\n", frame->flags);
   printf("Frame data length: %d\n", frame->data_length);
+
+  spdy_headers_dump(frame->headers);
 }
 
 

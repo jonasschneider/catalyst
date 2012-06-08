@@ -1,4 +1,6 @@
 all: catalyst
 
-catalyst: catalyst.c spdy.c
-	gcc  $+   -o catalyst -lev
+OPT := -DDEBUG_CATALYST
+
+catalyst: catalyst.c spdy_frame.c spdy_headers.c
+	gcc  $+   -o catalyst -lev -lz -g $(OPT)

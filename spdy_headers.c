@@ -132,6 +132,8 @@ int spdy_headers_dump(spdy_headers_t *headers)
 
   for(i=0; i < headers->entry_count * 2; i++)
   {
+    if(i%2 == 0 && i != headers->entry_count * 2 - 1)
+      printf("  ");
     int len = (headers->data[offset] << 8) + headers->data[offset+1];
     offset += 2;
     for(j=0; j < len; j++)

@@ -16,6 +16,15 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   if(frame->parsed > 0)
     return SPDY_FRAME_ERROR_ALREADY_PARSED;
 
+  if(source_len < 8)
+    return SPDY_FRAME_ERROR_INCOMPLETE;
+
+  uint32_t data_length = (source[5] << 16) + (source[6] << 8) + source[7];
+
+  if(source_len < 8 + data_length) // for the moment we only parse complete frames
+    return SPDY_FRAME_ERROR_INCOMPLETE;
+
+  frame->data_length = data_length;
   frame->frame_type = source[0] >> 7;
   
   if(frame->frame_type == SPDY_CONTROL_FRAME)
@@ -29,9 +38,6 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   }
 
   frame->flags = source[4];
-
-  // FIXME: check length for correctness using soruce_len
-  frame->data_length = (source[5] << 16) + (source[6] << 8) + source[7];
 
   // raw data
   //frame->data = malloc(frame->data_length);

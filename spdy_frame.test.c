@@ -153,6 +153,42 @@ void test_data_frame()
 }
 
 
+
+
+
+
+
+
+
+const uint8_t test_packet_truncated_header[] = {0x80, 0x02, 0x00, 0x01, 0x01};
+void test_truncated_header()
+{
+  spdy_frame_t the_frame;
+  spdy_frame_t *frame = &the_frame;
+  spdy_frame_create(frame);
+  int res = spdy_frame_parse(frame, (uint8_t*)test_packet_truncated_header, sizeof(test_packet_truncated_header));
+  assert(res == SPDY_FRAME_ERROR_INCOMPLETE);
+
+  spdy_frame_destroy(frame);
+}
+
+
+const uint8_t test_packet_truncated_data[] = {0x80, 0x02, 0x00, 0x01, 0x01, 0x00, 0x01, 0x45, 0x00, 0x00, 0x00, 0x01};
+void test_truncated_data()
+{
+  spdy_frame_t the_frame;
+  spdy_frame_t *frame = &the_frame;
+  spdy_frame_create(frame);
+  int res = spdy_frame_parse(frame, (uint8_t*)test_packet_truncated_data, sizeof(test_packet_truncated_data));
+  assert(res == SPDY_FRAME_ERROR_INCOMPLETE);
+  
+  spdy_frame_destroy(frame);
+}
+
+
+
+
+
 void test_double_parse()
 {
   spdy_frame_t the_frame;
@@ -180,6 +216,8 @@ int main() {
 
   // API tests
   test_double_parse();
+  test_truncated_header();
+  test_truncated_data();
 
   fprintf(stderr, "%c[%d;%d;%dmspdy_frame passed.", 0x1B, 1,32,40);
   fprintf(stderr, "%c[%dm\n", 0x1B, 0);

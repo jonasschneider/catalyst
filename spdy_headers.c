@@ -164,28 +164,16 @@ int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
 
 void spdy_headers_dump(spdy_headers_t *headers)
 {
-  int i, j;
   printf("Headers (%u entries):\n", headers->entry_count);
 
-  int offset = 2;
+  uint8_t nbuf[SPDY_HEADERS_NAME_SIZE];
+  uint8_t vbuf[SPDY_HEADERS_VALUE_SIZE];
+  uint8_t *p=0;
 
-  for(i=0; i < headers->entry_count * 2; i++)
+  while(p = spdy_headers_iterate(headers, p))
   {
-    if(i%2 == 0 && i != headers->entry_count * 2 - 1)
-      printf("  ");
-    int len = (headers->data[offset] << 8) + headers->data[offset+1];
-    offset += 2;
-    for(j=0; j < len; j++)
-      printf("%c", headers->data[offset+j]);
-    if(i%2 == 0)
-    {
-      printf(" => ");
-    }
-    else
-    {
-      printf("\n");
-    }
-    offset += j;
+    assert(spdy_headers_get(p, nbuf, vbuf) == 0);
+    printf("  %s => %s\n", nbuf, vbuf);
   }
 }
 

@@ -24,6 +24,8 @@ void test_iterate()
   spdy_headers_t *headers = &the_headers;
   spdy_headers_inflate(headers, (uint8_t*)test_data_compressed_header, sizeof(test_data_compressed_header));
 
+  spdy_headers_dump(headers);
+
   uint8_t nbuf[SPDY_HEADERS_NAME_SIZE];
   uint8_t vbuf[SPDY_HEADERS_VALUE_SIZE];
   uint8_t *p=0;
@@ -33,8 +35,13 @@ void test_iterate()
   {
     n++;
     assert(spdy_headers_get(p, nbuf, vbuf) == 0);
-    printf("name: '%s'\nvalue: '%s'\n", nbuf, vbuf);
+    if(n==6)
+    {
+      assert(strcmp(nbuf, "host") == 0);
+      assert(strcmp(vbuf, "localhost:9000") == 0);
+    }
   }
+
   assert(n == 11);
 
   spdy_headers_destroy(headers);

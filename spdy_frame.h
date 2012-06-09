@@ -24,7 +24,7 @@ typedef struct
     struct {
       uint32_t stream_id;
       uint32_t associated_stream_id;
-      uint8_t pri;
+      uint8_t priority;
       uint8_t slot;
     } syn_stream;
   } control_header;

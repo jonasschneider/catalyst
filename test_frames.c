@@ -13,9 +13,13 @@ void test_syn_stream()
   assert(frame->frame_type == 1);
   assert(frame->protocol_version == 2);
   assert(frame->control_frame_type == 1);
-  assert(frame->control_header.syn_stream.stream_id == 1);
   assert(frame->flags == 1);
 
+  assert(frame->control_header.syn_stream.stream_id == 1);
+  assert(frame->control_header.syn_stream.associated_stream_id == 0);
+  assert(frame->control_header.syn_stream.priority == 0);
+  assert(frame->control_header.syn_stream.slot == 0);
+  
   spdy_frame_cleanup(frame);
   free(frame);
 }

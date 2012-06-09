@@ -23,36 +23,37 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     frame->stream_id = ((source[0] & (0xff >> 1)) << 24) + (source[1] << 16) + (source[2] << 8) + source[3];
   }
 
-
   frame->flags = source[4];
-
-  int offs = 10;
 
   // FIXME: check length for correctness using soruce_len
   frame->data_length = (source[5] << 16) + (source[6] << 8) + source[7];
 
+  // raw data
+  //frame->data = malloc(frame->data_length);
+  //printf("first char: %d\n", source[8+offs]);
+  //printf("second char: %d\n", source[9+offs]);
+  //memcpy(frame->data, &source[8+offs], frame->data_length);
+
+  int compressed_headers_at_offset = 0;
+
   if(frame->control_frame_type == SPDY_CONTROL_SYN_STREAM)
   {
     frame->control_header.syn_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+    frame->control_header.syn_stream.associated_stream_id = ((source[12] & (0xff >> 1)) << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
+    frame->control_header.syn_stream.priority = (source[16] & 0xfff00000) >> 5;
+    frame->control_header.syn_stream.slot = source[17];
+
+    compressed_headers_at_offset = 10;
   }
 
-  // raw data
-  frame->data = malloc(frame->data_length);
-  
-  printf("first char: %d\n", source[8+offs]);
-  printf("second char: %d\n", source[9+offs]);
-  memcpy(frame->data, &source[8+offs], frame->data_length);
+  if(compressed_headers_at_offset > 0)
+  {
+    frame->headers = malloc(sizeof(spdy_headers_t));
+    int res = spdy_headers_inflate(frame->headers, &source[8+compressed_headers_at_offset], frame->data_length-compressed_headers_at_offset);
 
-  //compressed data
-
-  frame->headers = malloc(sizeof(spdy_headers_t));
-  int res = spdy_headers_inflate(frame->headers, &source[8+offs], frame->data_length-offs);
-
-  printf("inflate result: %d\n", res);
-  //printf("buffer contents: %s\n", buffer);
-  printf("first byte of buffer: %x\n", frame->headers->data[0]);
-  printf("second byte of buffer: %x\n", frame->headers->data[1]);
-
+    DEBUG2("spdy_headers_inflate result: %d\n", res);
+    DEBUG2("second byte of header data: %x\n", frame->headers->data[1]);
+  }
 
   frame->parsed = 1; // track that we have allocated memory, FIXME: track whether stuff has been uncompressed
 

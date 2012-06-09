@@ -7,6 +7,7 @@
 #define SPDY_FRAME_ERROR_ALREADY_PARSED -1
 
 #define SPDY_CONTROL_SYN_STREAM 1
+#define SPDY_CONTROL_SYN_REPLY 2
 
 typedef struct
 {
@@ -29,6 +30,10 @@ typedef struct
       uint8_t priority;
       uint8_t slot;
     } syn_stream;
+
+    struct {
+      uint32_t stream_id;
+    } syn_reply;
   } control_header;
 
   // Data frame attributes
@@ -36,6 +41,7 @@ typedef struct
 
 } spdy_frame_t;
 
+int spdy_frame_create(spdy_frame_t *frame);
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len);
 int spdy_frame_dump(spdy_frame_t *frame);
-int spdy_frame_cleanup(spdy_frame_t *frame);
+int spdy_frame_destroy(spdy_frame_t *frame);

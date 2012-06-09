@@ -6,9 +6,14 @@
 #include "spdy_headers.h"
 #include "catalyst.h"
 
+int spdy_frame_create(spdy_frame_t *frame)
+{
+  memset(frame, 0, sizeof(spdy_frame_t));
+}
+
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
-  if(frame->parsed)
+  if(frame->parsed > 0)
     return SPDY_FRAME_ERROR_ALREADY_PARSED;
 
   frame->frame_type = source[0] >> 7;
@@ -45,6 +50,11 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 
     compressed_headers_at_offset = 10;
   }
+  else if(frame->control_frame_type == SPDY_CONTROL_SYN_REPLY)
+  {
+    frame->control_header.syn_reply.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+  }
+
 
   if(compressed_headers_at_offset > 0)
   {
@@ -73,7 +83,7 @@ int spdy_frame_dump(spdy_frame_t *frame)
 }
 
 
-int spdy_frame_cleanup(spdy_frame_t *frame)
+int spdy_frame_destroy(spdy_frame_t *frame)
 {
   // free data pointers of spdy_frame_parse
 }

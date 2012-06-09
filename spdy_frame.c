@@ -13,7 +13,7 @@ int spdy_frame_create(spdy_frame_t *frame)
 
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
-  int32_t compressed_headers_at_offset = 0; // counting from first byte after length, fixme: also use -1 here
+  int32_t compressed_headers_at_offset = -1; // counting from first byte after length, -1 = none
   char has_data = 0;
 
   if(frame->parsed > 0)
@@ -70,14 +70,12 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     // fixme: fail for other control frame types
   }
 
-  if(compressed_headers_at_offset > 0)
+  if(compressed_headers_at_offset >= 0)
   {
     frame->headers = malloc(sizeof(spdy_headers_t));
     int res = spdy_headers_inflate(frame->headers, &source[8+compressed_headers_at_offset], frame->data_length-compressed_headers_at_offset);
-    //fixme: dependent on both
-
+    
     DEBUG2("spdy_headers_inflate result: %d\n", res);
-    DEBUG2("second byte of header data: %x\n", frame->headers->data[1]);
   }
 
   if(has_data)

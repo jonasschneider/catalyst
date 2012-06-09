@@ -4,6 +4,8 @@
 #define SPDY_DATA_FRAME 0
 #define SPDY_CONTROL_FRAME 1
 
+#define SPDY_CONTROL_SYN_STREAM 1
+
 typedef struct
 {
   // Common attributes
@@ -17,6 +19,15 @@ typedef struct
   uint16_t protocol_version;
   uint16_t control_frame_type;
   spdy_headers_t *headers;
+
+  union {
+    struct {
+      uint32_t stream_id;
+      uint32_t associated_stream_id;
+      uint8_t pri;
+      uint8_t slot;
+    } syn_stream;
+  } control_header;
 
   // Data frame attributes
   uint32_t stream_id;

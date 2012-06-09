@@ -23,12 +23,18 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     frame->stream_id = ((source[0] & (0xff >> 1)) << 24) + (source[1] << 16) + (source[2] << 8) + source[3];
   }
 
+
   frame->flags = source[4];
 
   int offs = 10;
 
   // FIXME: check length for correctness using soruce_len
   frame->data_length = (source[5] << 16) + (source[6] << 8) + source[7];
+
+  if(frame->control_frame_type == SPDY_CONTROL_SYN_STREAM)
+  {
+    frame->control_header.syn_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+  }
 
   // raw data
   frame->data = malloc(frame->data_length);

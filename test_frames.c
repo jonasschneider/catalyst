@@ -135,6 +135,24 @@ void test_goaway()
 }
 
 
+const uint8_t test_packet_data_frame[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0d, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x53, 0x50, 0x44, 0x59, 0x2e};
+void test_data_frame()
+{
+  spdy_frame_t the_frame;
+  spdy_frame_t *frame = &the_frame;
+  spdy_frame_create(frame);
+  int res = spdy_frame_parse(frame, (uint8_t*)test_packet_data_frame, sizeof(test_packet_data_frame));
+  assert(res == 0);
+
+  assert(frame->frame_type == SPDY_DATA_FRAME);
+  assert(frame->stream_id == 1);  
+  assert(frame->flags == 0);
+  assert(frame->data_length == 13);
+
+  spdy_frame_destroy(frame);
+}
+
+
 void test_double_parse()
 {
   spdy_frame_t the_frame;
@@ -149,12 +167,18 @@ void test_double_parse()
 }
 
 int main() {
+  // Control frame tests
   test_syn_stream();
   test_syn_reply();
   test_rst_stream();
   test_settings();
   test_ping();
   test_goaway();
+
+  // Data frame tests
+  test_data_frame();
+
+  // API tests
   test_double_parse();
 
   printf("%c[%d;%d;%dmAll tests passed.", 0x1B, 1,32,40);

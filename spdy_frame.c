@@ -41,33 +41,30 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 
   int compressed_headers_at_offset = 0;
 
-  if(frame->control_frame_type == SPDY_CONTROL_SYN_STREAM)
+  switch(frame->control_frame_type)
   {
-    frame->control_header.syn_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
-    frame->control_header.syn_stream.associated_stream_id = ((source[12] & (0xff >> 1)) << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
-    frame->control_header.syn_stream.priority = (source[16] & 0xfff00000) >> 5;
-    frame->control_header.syn_stream.slot = source[17];
+    case SPDY_CONTROL_SYN_STREAM:
+      frame->control_header.syn_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+      frame->control_header.syn_stream.associated_stream_id = ((source[12] & (0xff >> 1)) << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
+      frame->control_header.syn_stream.priority = (source[16] & 0xfff00000) >> 5;
+      frame->control_header.syn_stream.slot = source[17];
 
-    compressed_headers_at_offset = 10;
+      compressed_headers_at_offset = 10;
+      break;
+    case SPDY_CONTROL_SYN_REPLY:
+      frame->control_header.syn_reply.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+      break;
+    case SPDY_CONTROL_RST_STREAM:
+      frame->control_header.rst_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+      frame->control_header.rst_stream.status = (source[12] << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
+      break;
+    case SPDY_CONTROL_PING:
+      frame->control_header.ping.ping_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+      break;
+    case SPDY_CONTROL_GOAWAY:
+      frame->control_header.goaway.last_good_stream_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+      break;
   }
-  else if(frame->control_frame_type == SPDY_CONTROL_SYN_REPLY)
-  {
-    frame->control_header.syn_reply.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
-  }
-  else if(frame->control_frame_type == SPDY_CONTROL_RST_STREAM)
-  {
-    frame->control_header.rst_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
-    frame->control_header.rst_stream.status = (source[12] << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
-  }
-  else if(frame->control_frame_type == SPDY_CONTROL_PING)
-  {
-    frame->control_header.ping.ping_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
-  }
-  else if(frame->control_frame_type == SPDY_CONTROL_GOAWAY)
-  {
-    frame->control_header.goaway.last_good_stream_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
-  }
-
 
   if(compressed_headers_at_offset > 0)
   {
@@ -78,7 +75,7 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     DEBUG2("second byte of header data: %x\n", frame->headers->data[1]);
   }
 
-  frame->parsed = 1; // track that we have allocated memory, FIXME: track whether stuff has been uncompressed
+  frame->parsed = 1; // track that we have allocated memory for headers etc
 
   return 0;
 }

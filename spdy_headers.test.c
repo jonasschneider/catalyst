@@ -15,7 +15,7 @@ void test_inflate()
   assert(headers->entry_count == 11);
   assert(headers->data_length == 570);
 
-  //spdy_frame_destroy(frame);
+  spdy_headers_destroy(headers);
 }
 
 void test_iterate()
@@ -36,13 +36,15 @@ void test_iterate()
     printf("name: '%s'\nvalue: '%s'\n", nbuf, vbuf);
   }
   assert(n == 11);
+
+  spdy_headers_destroy(headers);
 }
 
 int main() {
   test_inflate();
   test_iterate();
 
-  printf("%c[%d;%d;%dmspdy_headers passed.", 0x1B, 1,32,40);
-  printf("%c[%dm\n", 0x1B, 0);
+  fprintf(stderr, "%c[%d;%d;%dmspdy_headers passed.", 0x1B, 1,32,40);
+  fprintf(stderr, "%c[%dm\n", 0x1B, 0);
   return 0;
 }

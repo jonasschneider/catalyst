@@ -95,5 +95,9 @@ int spdy_frame_dump(spdy_frame_t *frame)
 
 int spdy_frame_destroy(spdy_frame_t *frame)
 {
-  // free data pointers of spdy_frame_parse
+  if(frame->headers)
+  {
+    spdy_headers_destroy(frame->headers);
+    free(frame->headers);
+  }
 }

@@ -162,7 +162,7 @@ int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
   return 0;
 }
 
-int spdy_headers_dump(spdy_headers_t *headers)
+void spdy_headers_dump(spdy_headers_t *headers)
 {
   int i, j;
   printf("Headers (%u entries):\n", headers->entry_count);
@@ -187,4 +187,9 @@ int spdy_headers_dump(spdy_headers_t *headers)
     }
     offset += j;
   }
+}
+
+void spdy_headers_destroy(spdy_headers_t *headers)
+{
+  free(headers->data);
 }

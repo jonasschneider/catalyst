@@ -4,6 +4,8 @@
 #define SPDY_DATA_FRAME 0
 #define SPDY_CONTROL_FRAME 1
 
+#define SPDY_FRAME_ERROR_ALREADY_PARSED -1
+
 #define SPDY_CONTROL_SYN_STREAM 1
 
 typedef struct

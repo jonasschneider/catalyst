@@ -9,7 +9,7 @@
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
   if(frame->parsed)
-    return -1;
+    return SPDY_FRAME_ERROR_ALREADY_PARSED;
 
   frame->frame_type = source[0] >> 7;
   

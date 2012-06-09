@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "spdy_frame.h"
 #include "spdy_headers.h"
@@ -43,7 +44,6 @@ int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t sour
     ret = inflateInit(&strm);
     if (ret != Z_OK)
         return ret;
-
 
     DEBUG2("compressed data len: %u\n", source_len);
 
@@ -85,21 +85,11 @@ int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t sour
             (void)inflateEnd(&strm);
             //return ret;
         }
-        have += initial_output_size - strm.avail_out;
 
-        headers->data_length += have;
+        headers->data_length += initial_output_size - strm.avail_out;
 
         DEBUG3("in avail: %u, out avail=%u\n", strm.avail_in, strm.avail_out);
         DEBUG3("next avail byte: %x at %x\n", *strm.next_in, strm.next_in);
-        
-
-        int n;
-        for(n=0; n < have; n++) {
-          DEBUG2("%02x ",(uint8_t)headers->data[n]);
-          if((n+1) % 32 == 0)
-            DEBUG1("\n");
-        }
-        DEBUG1("\n");
 
         if(strm.avail_in > 0) {
           output_size = output_size + initial_output_size;
@@ -118,10 +108,59 @@ int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t sour
     (void)inflateEnd(&strm);
 
     headers->entry_count = (headers->data[0] << 8) + headers->data[1];
+    // fixme: check if count is correct
+
+    for(n=0; n < headers->data_length; n++) {
+      DEBUG2("%02x ",(uint8_t)headers->data[n]);
+      if((n+1) % 32 == 0)
+        DEBUG1("\n");
+    }
+    DEBUG1("\n");
 
     return ret == Z_OK ? 0 : -1;
 }
 
+uint8_t *spdy_headers_iterate(spdy_headers_t *headers, uint8_t *position)
+{
+  if(position == 0)
+  {
+    return headers->data+2;
+  }
+
+  uint16_t name_len = (*position << 8) + *(position+1);
+  position += 2 + name_len;
+
+  uint16_t value_len = (*position << 8) + *(position+1);
+  position += 2 + value_len;
+
+  if(position >= (headers->data + headers->data_length))
+  {
+    return 0;
+  }
+
+  return position;
+}
+
+int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
+{
+  uint16_t name_len = (*position << 8) + *(position+1);
+  if(name_len > SPDY_HEADERS_NAME_SIZE)
+  {
+    return -1;
+  }
+  strncpy(nbuf, position+2, SPDY_HEADERS_NAME_SIZE);
+
+  position += 2 + name_len;
+
+  uint16_t value_len = (*position << 8) + *(position+1);
+  if(value_len > SPDY_HEADERS_VALUE_SIZE)
+  {
+    return -1;
+  }
+  strncpy(vbuf, position+2, SPDY_HEADERS_VALUE_SIZE);
+
+  return 0;
+}
 
 int spdy_headers_dump(spdy_headers_t *headers)
 {

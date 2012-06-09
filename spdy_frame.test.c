@@ -181,7 +181,7 @@ int main() {
   // API tests
   test_double_parse();
 
-  printf("%c[%d;%d;%dmAll tests passed.", 0x1B, 1,32,40);
+  printf("%c[%d;%d;%dmspdy_frame passed.", 0x1B, 1,32,40);
   printf("%c[%dm\n", 0x1B, 0);
   return 0;
 }

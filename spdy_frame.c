@@ -54,6 +54,19 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   {
     frame->control_header.syn_reply.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
   }
+  else if(frame->control_frame_type == SPDY_CONTROL_RST_STREAM)
+  {
+    frame->control_header.rst_stream.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+    frame->control_header.rst_stream.status = (source[12] << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
+  }
+  else if(frame->control_frame_type == SPDY_CONTROL_PING)
+  {
+    frame->control_header.ping.ping_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+  }
+  else if(frame->control_frame_type == SPDY_CONTROL_GOAWAY)
+  {
+    frame->control_header.goaway.last_good_stream_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
+  }
 
 
   if(compressed_headers_at_offset > 0)

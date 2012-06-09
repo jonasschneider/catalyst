@@ -8,6 +8,10 @@
 
 #define SPDY_CONTROL_SYN_STREAM 1
 #define SPDY_CONTROL_SYN_REPLY 2
+#define SPDY_CONTROL_RST_STREAM 3
+#define SPDY_CONTROL_SETTINGS 4
+#define SPDY_CONTROL_PING 6
+#define SPDY_CONTROL_GOAWAY 7 
 
 typedef struct
 {
@@ -34,6 +38,19 @@ typedef struct
     struct {
       uint32_t stream_id;
     } syn_reply;
+
+    struct {
+      uint32_t stream_id;
+      uint32_t status;
+    } rst_stream;
+
+    struct {
+      uint32_t ping_id;
+    } ping;
+
+    struct {
+      uint32_t last_good_stream_id;
+    } goaway;
   } control_header;
 
   // Data frame attributes

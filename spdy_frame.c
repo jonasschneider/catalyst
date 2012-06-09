@@ -13,6 +13,9 @@ int spdy_frame_create(spdy_frame_t *frame)
 
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
+  int32_t compressed_headers_at_offset = 0; // counting from first byte after length, fixme: also use -1 here
+  char has_data = 0;
+
   if(frame->parsed > 0)
     return SPDY_FRAME_ERROR_ALREADY_PARSED;
 
@@ -35,17 +38,11 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   else
   {
     frame->stream_id = ((source[0] & (0xff >> 1)) << 24) + (source[1] << 16) + (source[2] << 8) + source[3];
+    has_data = 1;
   }
 
   frame->flags = source[4];
 
-  // raw data
-  //frame->data = malloc(frame->data_length);
-  //printf("first char: %d\n", source[8+offs]);
-  //printf("second char: %d\n", source[9+offs]);
-  //memcpy(frame->data, &source[8+offs], frame->data_length);
-
-  int compressed_headers_at_offset = 0;
 
   switch(frame->control_frame_type)
   {
@@ -70,16 +67,27 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     case SPDY_CONTROL_GOAWAY:
       frame->control_header.goaway.last_good_stream_id = (source[8] << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
       break;
+    // fixme: fail for other control frame types
   }
 
   if(compressed_headers_at_offset > 0)
   {
     frame->headers = malloc(sizeof(spdy_headers_t));
     int res = spdy_headers_inflate(frame->headers, &source[8+compressed_headers_at_offset], frame->data_length-compressed_headers_at_offset);
+    //fixme: dependent on both
 
     DEBUG2("spdy_headers_inflate result: %d\n", res);
     DEBUG2("second byte of header data: %x\n", frame->headers->data[1]);
   }
+
+  if(has_data)
+  {
+    frame->data = malloc(frame->data_length);
+    printf("first char: %d\n", source[8]);
+    printf("second char: %d\n", source[9]);
+    memcpy(frame->data, &source[8], frame->data_length);
+  }
+
 
   frame->parsed = 1; // track that we have allocated memory for headers etc
 

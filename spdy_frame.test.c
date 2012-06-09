@@ -149,6 +149,10 @@ void test_data_frame()
   assert(frame->flags == 0);
   assert(frame->data_length == 13);
 
+  assert(frame->data != 0);
+
+  assert(strcmp(frame->data, "This is SPDY.") == 0);
+
   spdy_frame_destroy(frame);
 }
 

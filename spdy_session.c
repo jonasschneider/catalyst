@@ -30,8 +30,14 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
   printf("spdy_frame_parse result: %d\n", res);
   if(res > 0)
   {
-    session->received_frame_count = 1;
-    // todo: shift parse buffer
+
+    // res contains the length of the parsed frame
+    session->received_frame_count++;
+
+    size_t remaining = session->avail_to_parse - res;
+    session->avail_to_parse -= res;
+
+    memcpy(session->parse_buffer, session->parse_buffer+res, remaining);
     return 0;
   }
   else if(res == SPDY_FRAME_ERROR_INCOMPLETE)

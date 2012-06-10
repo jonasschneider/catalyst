@@ -13,7 +13,7 @@ typedef struct
   uint8_t parse_buffer[SPDY_SESSION_PARSE_BUFFER_SIZE];
   size_t avail_to_parse;
 
-  spdy_frame_t *next_frame;
+  spdy_frame_t next_frame;
 
   uint32_t received_frame_count;
 

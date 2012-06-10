@@ -151,7 +151,7 @@ void test_data_frame()
 
   assert(frame->data != 0);
 
-  assert(strcmp(frame->data, "This is SPDY.") == 0);
+  assert(memcmp("This is SPDY.", frame->data, frame->data_length) == 0);
 
   spdy_frame_destroy(frame);
 }

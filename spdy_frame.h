@@ -9,6 +9,7 @@
 
 #define SPDY_FRAME_ERROR_ALREADY_PARSED -1
 #define SPDY_FRAME_ERROR_INCOMPLETE -2
+#define SPDY_FRAME_ERROR_CORRUPT_DATA -3
 
 #define SPDY_CONTROL_SYN_STREAM 1
 #define SPDY_CONTROL_SYN_REPLY 2
@@ -29,7 +30,6 @@ typedef struct
   // Control frame attributes
   uint16_t protocol_version;
   uint16_t control_frame_type;
-  spdy_headers_t *headers;
 
   union {
     struct {

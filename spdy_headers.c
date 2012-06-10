@@ -27,28 +27,18 @@ static const char spdy_dictionary[] =
 
 
 // FIXME: persist zlib stream for a spdy session
-int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t source_len)
+int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *source, uint32_t source_len)
 {
     int ret;
     unsigned have = 0;
-    z_stream strm;
 
     const int initial_output_size = 256;
     headers->data = (uint8_t*) malloc(initial_output_size);
 
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-    strm.avail_in = 0;
-    strm.next_in = Z_NULL;
-    ret = inflateInit(&strm);
-    if (ret != Z_OK)
-        return ret;
-
     DEBUG2("compressed data len: %u\n", source_len);
 
-    strm.avail_in = source_len;
-    strm.next_in = source;
+   zstrm->avail_in = source_len;
+   zstrm->next_in = source;
 
     int n;
     for(n=0; n < source_len; n++) {
@@ -57,55 +47,52 @@ int spdy_headers_inflate(spdy_headers_t *headers, uint8_t *source, uint32_t sour
         DEBUG1("\n");
     }
 
-    inflate(&strm, Z_NO_FLUSH);
+    inflate(zstrm, Z_NO_FLUSH);
 
     uint32_t output_size = initial_output_size;
     headers->data_length = 0;
 
-    strm.avail_out = initial_output_size;
+    zstrm->avail_out = initial_output_size;
 
-    strm.next_out = headers->data;
+    zstrm->next_out = headers->data;
 
     do {
-        ret = inflate(&strm, Z_NO_FLUSH);
+        ret = inflate(zstrm, Z_NO_FLUSH);
         DEBUG2("inflate returned %d\n", ret);
         if(ret == Z_NEED_DICT)
         {
           DEBUG1("zlib needs dict\n");
-          inflateSetDictionary(&strm, spdy_dictionary, sizeof(spdy_dictionary));
-          ret = inflate(&strm, Z_NO_FLUSH);
+          inflateSetDictionary(zstrm, spdy_dictionary, sizeof(spdy_dictionary));
+          ret = inflate(zstrm, Z_NO_FLUSH);
           DEBUG2("retried, result=%u\n", ret);
         }
         assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
 
-        switch (ret) {
-        case Z_NEED_DICT:
-        case Z_DATA_ERROR:
-        case Z_MEM_ERROR:
-            (void)inflateEnd(&strm);
-            //return ret;
+        if(ret) {
+            (void)inflateEnd(zstrm);
+            return SPDY_HEADERS_ERROR_CORRUPT_DATA;
         }
 
-        headers->data_length += initial_output_size - strm.avail_out;
+        headers->data_length += initial_output_size -zstrm->avail_out;
 
-        DEBUG3("in avail: %u, out avail=%u\n", strm.avail_in, strm.avail_out);
-        DEBUG3("next avail byte: %x at %x\n", *strm.next_in, strm.next_in);
+        DEBUG3("in avail: %u, out avail=%u\n",zstrm->avail_in,zstrm->avail_out);
+        DEBUG3("next avail byte: %x at %x\n", zstrm->next_in,zstrm->next_in);
 
-        if(strm.avail_in > 0) {
+        if(zstrm->avail_in > 0) {
           output_size = output_size + initial_output_size;
-          DEBUG3("more to come (avail out=%u), reallocing to %u\n", strm.avail_out, output_size);
+          DEBUG3("more to come (avail out=%u), reallocing to %u\n",zstrm->avail_out, output_size);
 
           uint8_t *oldptr = headers->data;
           headers->data = realloc(headers->data, output_size);
 
-          strm.avail_out += initial_output_size;
-          strm.next_out = headers->data + headers->data_length;
+         zstrm->avail_out += initial_output_size;
+         zstrm->next_out = headers->data + headers->data_length;
         }
 
-        DEBUG2("avail out: %u\n", strm.avail_out);
-    } while (strm.avail_in > 0);
+        DEBUG2("avail out: %u\n",zstrm->avail_out);
+    } while(zstrm->avail_in > 0);
 
-    (void)inflateEnd(&strm);
+    (void)inflateEnd(zstrm);
 
     headers->entry_count = (headers->data[0] << 8) + headers->data[1];
     // fixme: check if count is correct
@@ -179,5 +166,8 @@ void spdy_headers_dump(spdy_headers_t *headers)
 
 void spdy_headers_destroy(spdy_headers_t *headers)
 {
-  free(headers->data);
+  if(headers->data)
+  {
+    free(headers->data);
+  }
 }

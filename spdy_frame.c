@@ -3,7 +3,6 @@
 #include <malloc.h>
 
 #include "spdy_frame.h"
-#include "spdy_headers.h"
 #include "catalyst.h"
 
 int spdy_frame_create(spdy_frame_t *frame)
@@ -70,22 +69,10 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     // fixme: fail for other control frame types
   }
 
-  if(compressed_headers_at_offset >= 0)
-  {
-    frame->headers = malloc(sizeof(spdy_headers_t));
-    int res = spdy_headers_inflate(frame->headers, &source[8+compressed_headers_at_offset], frame->data_length-compressed_headers_at_offset);
-    
-    DEBUG2("spdy_headers_inflate result: %d\n", res);
-  }
-
-  if(has_data)
-  {
-    frame->data = malloc(frame->data_length);
-    printf("first char: %d\n", source[8]);
-    printf("second char: %d\n", source[9]);
-    memcpy(frame->data, &source[8], frame->data_length);
-  }
-
+  frame->data = malloc(frame->data_length);
+  printf("first char: %d\n", source[8]);
+  printf("second char: %d\n", source[9]);
+  memcpy(frame->data, &source[8], frame->data_length);
 
   frame->parsed = 1; // track that we have allocated memory for headers etc
 
@@ -100,16 +87,14 @@ int spdy_frame_dump(spdy_frame_t *frame)
   printf("Frame type: %u\n", frame->control_frame_type);
   printf("Flags: %u\n", frame->flags);
   printf("Frame data length: %d\n", frame->data_length);
-
-  spdy_headers_dump(frame->headers);
 }
 
 
 int spdy_frame_destroy(spdy_frame_t *frame)
 {
-  if(frame->headers)
+  if(frame->data)
   {
-    spdy_headers_destroy(frame->headers);
-    free(frame->headers);
+    free(frame->data);
   }
+  
 }

@@ -1,7 +1,7 @@
 OPT := -DDEBUG_CATALYST -lev -lz -g -I.
 CC := gcc 
 TESTS := $(shell echo test/*.test.c)
-SRC := spdy_frame.c spdy_headers.c
+SRC := spdy_frame.c spdy_headers.c spdy_session.c
 MAIN := catalyst.c
 
 catalyst: $(SRC) $(MAIN)

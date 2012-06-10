@@ -89,7 +89,7 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 
   frame->parsed = 1; // track that we have allocated memory for headers etc
 
-  return 0;
+  return frame->data_length + 8;
 }
 
 

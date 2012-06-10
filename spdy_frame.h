@@ -1,3 +1,6 @@
+#ifndef SPDY_FRAME_H
+#define SPDY_FRAME_H
+
 #include <inttypes.h>
 #include "spdy_headers.h"
 
@@ -65,3 +68,4 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len);
 int spdy_frame_dump(spdy_frame_t *frame);
 
 int spdy_frame_destroy(spdy_frame_t *frame);
+#endif

@@ -10,7 +10,7 @@ void test_syn_stream()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_syn_stream, sizeof(test_packet_syn_stream));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -35,7 +35,7 @@ void test_syn_reply()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_syn_reply, sizeof(test_packet_syn_reply));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -57,7 +57,7 @@ void test_rst_stream()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_rst_stream, sizeof(test_packet_rst_stream));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -79,7 +79,7 @@ void test_settings()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_settings, sizeof(test_packet_settings));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -100,7 +100,7 @@ void test_ping()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_ping, sizeof(test_packet_ping));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -121,7 +121,7 @@ void test_goaway()
   spdy_frame_create(frame);
 
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_goaway, sizeof(test_packet_goaway));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_CONTROL_FRAME);
   assert(frame->protocol_version == 2);
@@ -142,7 +142,7 @@ void test_data_frame()
   spdy_frame_t *frame = &the_frame;
   spdy_frame_create(frame);
   int res = spdy_frame_parse(frame, (uint8_t*)test_packet_data_frame, sizeof(test_packet_data_frame));
-  assert(res == 0);
+  assert(res > 0);
 
   assert(frame->frame_type == SPDY_DATA_FRAME);
   assert(frame->stream_id == 1);  

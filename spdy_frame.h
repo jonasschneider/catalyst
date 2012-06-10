@@ -64,6 +64,10 @@ typedef struct
 
 int spdy_frame_create(spdy_frame_t *frame);
 
+// Tries to parse a frame from the buffer `source` of length `source_len`.
+// Returns
+// - the number of consumed bytes on success, or
+// - SPDY_FRAME_ERROR_INCOMPLETE if the buffer does not contain a complete frame.
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len);
 int spdy_frame_dump(spdy_frame_t *frame);
 

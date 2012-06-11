@@ -120,7 +120,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 	spdy_session_t *client_spdy_session = watcher->data;
 
 	uint8_t *buffer_cursor = client_spdy_session->parse_buffer + client_spdy_session->avail_to_parse;
-	printf("before read: avail_to_parse=%u", client_spdy_session->avail_to_parse);
+	printf("before read: avail_to_parse=%u\n", client_spdy_session->avail_to_parse);
 	size_t buffer_space = SPDY_SESSION_PARSE_BUFFER_SIZE - client_spdy_session->avail_to_parse;
 
 	printf("allowing read of %zu\n", buffer_space);
@@ -130,6 +130,8 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 	// Receive message from client socket
 	read = recv(watcher->fd, buffer_cursor, buffer_space, 0);
 
+	printf("read res: %d\n", read);
+
 	if(read < 0)
 	{
 	perror("read error");
@@ -138,8 +140,6 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 
 	if(read == 0)
 	{
-		printf("read() returned 0\n");
-		return;
 		// Stop and free watcher if client socket is closing, FIME: free spdy
 		ev_io_stop(loop,watcher);
 		free(watcher);
@@ -153,12 +153,37 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 		printf("message:%s\n",buffer);
 		client_spdy_session->avail_to_parse += read;
 		int res = spdy_session_parse_next_frame(client_spdy_session);
-		printf("spdy_session_parse_next_frame result: %d", res);
+		printf("spdy_session_parse_next_frame result: %d\n", res);
+		if(res == 0) {
+			spdy_frame_t frame;
+
+		  frame.frame_type = SPDY_CONTROL_FRAME;
+		  frame.protocol_version = 2;
+		  frame.control_frame_type = SPDY_CONTROL_RST_STREAM;
+		  frame.flags = 0;
+		  static uint8_t rst[] = {'\0', '\0', '\0', '\1', '\0', '\0', '\0', '\1'};
+		  frame.data_length = 8;
+		  frame.data = rst;
+
+		  uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];
+		  uint32_t packed_size = spdy_frame_pack(&frame, packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE);
+		  printf("wanting to send\n");
+
+		  const uint8_t test_packet_syn_reply[] = {0x80, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
+		  printf("framesize: %u\n", sizeof(test_packet_syn_reply));
+		  int n;
+		  for(n=0; n < sizeof(test_packet_syn_reply); n++) {
+		    printf("%02x ",(uint8_t)test_packet_syn_reply[n]);
+		  }
+		  printf("\n");
+		  
+		  res = send(watcher->fd, test_packet_syn_reply, sizeof(test_packet_syn_reply), 0);
+		  printf("send() result: %d\n", res);
+		}
 	}
 
-	// Send message bach to the client
-	send(watcher->fd, buffer, read, 0);
-	bzero(buffer, read);
+	printf("totally done!\n");
+
 }
 
 

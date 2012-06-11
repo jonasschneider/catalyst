@@ -44,7 +44,8 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
     if(session->last_frame.frame_type == SPDY_CONTROL_FRAME && session->last_frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
     {
       DEBUG1("inflating header\n");
-      int res = spdy_headers_inflate(&session->last_frame_headers, &session->inflate_zstrm, session->last_frame.data+10, session->last_frame.data_length-10);
+      int hdr_offset = 10;
+      int res = spdy_headers_inflate(&session->last_frame_headers, &session->inflate_zstrm, session->last_frame.data+hdr_offset, session->last_frame.data_length-hdr_offset);
       
       DEBUG2("spdy_headers_inflate result: %d\n", res);
       if(res) {

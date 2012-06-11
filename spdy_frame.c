@@ -5,6 +5,17 @@
 #include "spdy_frame.h"
 #include "catalyst.h"
 
+static int spdy_frame_reset(spdy_frame_t *frame)
+{
+  if(frame->data)
+  {
+    free(frame->data);
+    frame->data = 0;
+  }
+
+  memset(frame, 0, sizeof(spdy_frame_t));
+}
+
 int spdy_frame_create(spdy_frame_t *frame)
 {
   memset(frame, 0, sizeof(spdy_frame_t));
@@ -12,15 +23,12 @@ int spdy_frame_create(spdy_frame_t *frame)
 
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
-  if(frame->parsed > 0)
-    return SPDY_FRAME_ERROR_ALREADY_PARSED;
-
   if(source_len < 8)
     return SPDY_FRAME_ERROR_INCOMPLETE;
 
   uint32_t data_length = (source[5] << 16) + (source[6] << 8) + source[7];
 
-  DEBUG2("parsing frame, source_len=%u. first 32 bytes:\n", source_len);
+  DEBUG2("=== parsing frame, source_len=%u.\nfirst 32 bytes:\n", source_len);
   int n;
   for(n=0; n < (32 > source_len ? source_len : 32); n++) {
     DEBUG2("%02x ",(uint8_t)source[n]);
@@ -33,6 +41,9 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 
   if(source_len < 8 + data_length) // for the moment we only parse complete frames
     return SPDY_FRAME_ERROR_INCOMPLETE;
+
+  // from here on the old frame is discarded
+  spdy_frame_reset(frame);
 
   frame->data_length = data_length;
   frame->frame_type = source[0] >> 7;
@@ -77,8 +88,6 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   DEBUG2("parsing succeeded, first data byte: %x\n", source[8]);
   memcpy(frame->data, &source[8], frame->data_length);
 
-  frame->parsed = 1; // track that we have allocated memory for headers etc
-
   return frame->data_length + 8;
 }
 
@@ -95,9 +104,5 @@ int spdy_frame_dump(spdy_frame_t *frame)
 
 int spdy_frame_destroy(spdy_frame_t *frame)
 {
-  if(frame->data)
-  {
-    free(frame->data);
-  }
-  
+  spdy_frame_reset(frame);
 }

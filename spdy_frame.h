@@ -7,7 +7,6 @@
 #define SPDY_DATA_FRAME 0
 #define SPDY_CONTROL_FRAME 1
 
-#define SPDY_FRAME_ERROR_ALREADY_PARSED -1
 #define SPDY_FRAME_ERROR_INCOMPLETE -2
 #define SPDY_FRAME_ERROR_CORRUPT_DATA -3
 
@@ -25,7 +24,6 @@ typedef struct
   uint8_t flags;
   uint32_t data_length;
   uint8_t *data;
-  char parsed;
 
   // Control frame attributes
   uint16_t protocol_version;

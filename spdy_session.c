@@ -10,6 +10,7 @@ int spdy_session_create(spdy_session_t *session)
 {
   memset(session, 0, sizeof(spdy_session_t));
   spdy_headers_create(&session->last_frame_headers);
+  spdy_frame_create(&session->last_frame);
 
   session->inflate_zstrm.zalloc = Z_NULL;
   session->inflate_zstrm.zfree = Z_NULL;
@@ -23,12 +24,9 @@ int spdy_session_create(spdy_session_t *session)
 
 int spdy_session_parse_next_frame(spdy_session_t *session)
 {
-  spdy_frame_t frame;
-  spdy_frame_create(&frame);
-
   printf("avail_to_parse: %u\n", session->avail_to_parse);
 
-  int res = spdy_frame_parse(&frame, (uint8_t*)session->parse_buffer, session->avail_to_parse);
+  int res = spdy_frame_parse(&session->last_frame, (uint8_t*)session->parse_buffer, session->avail_to_parse);
   printf("spdy_frame_parse result: %d\n", res);
   if(res > 0)
   { // res then contains the length of the parsed frame
@@ -43,10 +41,10 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
     spdy_headers_destroy(&session->last_frame_headers);
 
     // check if we have to uncompress stuff
-    if(frame.frame_type == SPDY_CONTROL_FRAME && frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
+    if(session->last_frame.frame_type == SPDY_CONTROL_FRAME && session->last_frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
     {
       DEBUG1("inflating header\n");
-      int res = spdy_headers_inflate(&session->last_frame_headers, &session->inflate_zstrm, frame.data+10, frame.data_length-10);
+      int res = spdy_headers_inflate(&session->last_frame_headers, &session->inflate_zstrm, session->last_frame.data+10, session->last_frame.data_length-10);
       
       DEBUG2("spdy_headers_inflate result: %d\n", res);
       if(res) {

@@ -13,9 +13,9 @@ all: catalyst
 
 $(TESTS):
 	$(CC) -o tests.out $@ $(SRC) $(OPT)
-	@./tests.out > test_stdout 2> test_stderr || (cat test_stdout; cat test_stderr; false)
-	@cat test_stderr
-	@rm tests.out test_stdout test_stderr
+	@./tests.out > /tmp/test_stdout 2> /tmp/test_stderr || (cat /tmp/test_stdout; cat /tmp/test_stderr; false)
+	@cat /tmp/test_stderr
+	@rm tests.out /tmp/test_stdout /tmp/test_stderr
 
 
 test: $(TESTS)

@@ -193,19 +193,6 @@ void test_truncated_data()
 
 
 
-void test_double_parse()
-{
-  spdy_frame_t the_frame;
-  spdy_frame_t *frame = &the_frame;
-  spdy_frame_create(frame);
-
-  spdy_frame_parse(frame, (uint8_t*)test_packet_syn_stream, sizeof(test_packet_syn_stream));
-  int res = spdy_frame_parse(frame, (uint8_t*)test_packet_syn_stream, sizeof(test_packet_syn_stream));
-
-  assert(res == SPDY_FRAME_ERROR_ALREADY_PARSED);
-  spdy_frame_destroy(frame);
-}
-
 int main() {
   // Control frame tests
   test_syn_stream();
@@ -219,7 +206,6 @@ int main() {
   test_data_frame();
 
   // API tests
-  test_double_parse();
   test_truncated_header();
   test_truncated_data();
 

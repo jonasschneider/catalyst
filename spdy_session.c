@@ -34,9 +34,8 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
   { // res then contains the length of the parsed frame
 
     // shift the parse buffer
-    size_t remaining = session->avail_to_parse - res;
     session->avail_to_parse -= res;
-    memcpy(session->parse_buffer, session->parse_buffer+res, remaining);
+    memcpy(session->parse_buffer, session->parse_buffer+res, session->avail_to_parse);
 
     session->received_frame_count++;
 

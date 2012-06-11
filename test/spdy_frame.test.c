@@ -131,6 +131,21 @@ void test_goaway()
 
   assert(frame->control_header.goaway.last_good_stream_id == 1);
 
+  // test packing
+
+  uint8_t packed_frame[40];
+
+  uint32_t packed_size = spdy_frame_pack(frame, packed_frame, 40);
+  printf("retval: %u\n", packed_size);
+
+  assert(packed_size == sizeof(test_packet_goaway));
+
+  uint8_t n;
+  for(n=0; n < packed_size; n++) {
+    printf("%02x ",(uint8_t)packed_frame[n]);
+  }
+  assert(memcmp(test_packet_goaway, packed_frame, res) == 0);
+
   spdy_frame_destroy(frame);
 }
 
@@ -152,6 +167,14 @@ void test_data_frame()
   assert(frame->data != 0);
 
   assert(memcmp("This is SPDY.", frame->data, frame->data_length) == 0);
+
+  // test packing
+
+  uint8_t packed_data_frame[40];
+  uint32_t packed_size = spdy_frame_pack(frame, packed_data_frame, 40);
+
+  assert(packed_size == sizeof(test_packet_data_frame));
+  assert(memcmp(test_packet_data_frame, packed_data_frame, res) == 0);
 
   spdy_frame_destroy(frame);
 }

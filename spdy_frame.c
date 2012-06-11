@@ -92,6 +92,40 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 }
 
 
+
+uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size)
+{
+  if(frame->data_length + 8 > dest_size)
+  {
+    return 0;
+  }
+  memset(dest, 0, 8);
+
+  if(frame->frame_type == SPDY_CONTROL_FRAME)
+  {
+    dest[0] = (frame->protocol_version >> 8) | 1<<7;
+    dest[1] = frame->protocol_version;
+    dest[2] = frame->control_frame_type >> 8;
+    dest[3] = frame->control_frame_type;
+  }
+  else
+  {
+    dest[0] = (frame->stream_id >> 24) & (0xff >> 1);
+    dest[1] = frame->stream_id >> 16;
+    dest[2] = frame->stream_id >> 8;
+    dest[3] = frame->stream_id;
+  }
+
+  dest[4] = frame->flags;
+  dest[5] = frame->data_length << 16;
+  dest[6] = frame->data_length << 8;
+  dest[7] = frame->data_length;
+  memcpy(dest+8, frame->data, frame->data_length);
+
+  return 8 + frame->data_length;
+}
+
+
 int spdy_frame_dump(spdy_frame_t *frame)
 {
   printf("Frame type: %u\n", frame->frame_type);

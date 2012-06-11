@@ -51,6 +51,8 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
       if(res) {
         return SPDY_SESSION_ERROR_PARSE_ERROR;
       }
+
+      spdy_headers_dump(&session->last_frame_headers);
     }
     return 0;
   }

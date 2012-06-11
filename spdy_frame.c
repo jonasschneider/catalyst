@@ -91,11 +91,124 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   return frame->data_length + 8;
 }
 
+size_t spdy_frame_pack_syn_reply(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint8_t *headers, size_t headers_len, uint8_t flags)
+{
+  spdy_frame_t frame;
+  spdy_frame_create(&frame);
+
+  frame.frame_type = SPDY_CONTROL_FRAME;
+  frame.protocol_version = 2;
+  frame.control_frame_type = SPDY_CONTROL_SYN_REPLY;
+  frame.flags = flags;
+  frame.stream_id = stream_id;
+
+  uint8_t data[6+headers_len];
+  frame.data = data;
+  frame.data_length = 6+headers_len;
+
+  data[0] = (stream_id >> 24) & (0xff >> 1);
+  data[1] = stream_id >> 16;
+  data[2] = stream_id >> 8;
+  data[3] = stream_id;
+  data[4] = 0;
+  data[5] = 0;
+  memcpy(data+6, headers, headers_len);
+  
+  return spdy_frame_pack(&frame, dest, dest_size);
+}
+
+size_t spdy_frame_pack_rst_stream(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint32_t status, uint8_t flags)
+{
+  spdy_frame_t frame;
+  spdy_frame_create(&frame);
+
+  frame.frame_type = SPDY_CONTROL_FRAME;
+  frame.protocol_version = 2;
+  frame.control_frame_type = SPDY_CONTROL_RST_STREAM;
+  frame.flags = flags;
+  
+  uint8_t data[8];
+  frame.data = data;
+  frame.data_length = 8;
+
+  data[0] = (stream_id >> 24) & (0xff >> 1);
+  data[1] = stream_id >> 16;
+  data[2] = stream_id >> 8;
+  data[3] = stream_id;
+
+  data[4] = status >> 24;
+  data[5] = status >> 16;
+  data[6] = status >> 8;
+  data[7] = status;
+
+  return spdy_frame_pack(&frame, dest, dest_size);
+}
+
+size_t spdy_frame_pack_ping(uint8_t *dest, size_t dest_size, uint32_t ping_id, uint8_t flags)
+{
+  spdy_frame_t frame;
+  spdy_frame_create(&frame);
+
+  frame.frame_type = SPDY_CONTROL_FRAME;
+  frame.protocol_version = 2;
+  frame.control_frame_type = SPDY_CONTROL_PING;
+  frame.flags = flags;
+  
+  uint8_t data[4];
+  frame.data = data;
+  frame.data_length = 4;
+
+  data[0] = ping_id >> 24;
+  data[1] = ping_id >> 16;
+  data[2] = ping_id >> 8;
+  data[3] = ping_id;
+
+  return spdy_frame_pack(&frame, dest, dest_size);
+}
+
+
+size_t spdy_frame_pack_data(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint8_t *data, size_t data_len, uint8_t flags)
+{
+  spdy_frame_t frame;
+  spdy_frame_create(&frame);
+
+  frame.frame_type = SPDY_DATA_FRAME;
+  frame.flags = flags;
+  frame.stream_id = stream_id;
+  
+  frame.data = data;
+  frame.data_length = data_len;
+
+  return spdy_frame_pack(&frame, dest, dest_size);
+}
+
+
+size_t spdy_frame_pack_goaway(uint8_t *dest, size_t dest_size, uint32_t last_good_stream_id, uint8_t flags)
+{
+  spdy_frame_t frame;
+  spdy_frame_create(&frame);
+
+  frame.frame_type = SPDY_CONTROL_FRAME;
+  frame.protocol_version = 2;
+  frame.control_frame_type = SPDY_CONTROL_GOAWAY;
+  frame.flags = flags;
+  
+  uint8_t data[4];
+  frame.data = data;
+  frame.data_length = 4;
+
+  data[0] = (last_good_stream_id >> 24) & (0xff >> 1);
+  data[1] = last_good_stream_id >> 16;
+  data[2] = last_good_stream_id >> 8;
+  data[3] = last_good_stream_id;
+
+  return spdy_frame_pack(&frame, dest, dest_size);
+}
 
 
 uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size)
 {
-  if(frame->data_length + 8 > dest_size)
+  if(frame->data_length + 8 > dest_size) // fixme: adjust for different control header sizes
   {
     return 0;
   }
@@ -116,12 +229,12 @@ uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size)
     dest[3] = frame->stream_id;
   }
 
+  memcpy(dest+8, frame->data, frame->data_length);
+
   dest[4] = frame->flags;
   dest[5] = frame->data_length << 16;
   dest[6] = frame->data_length << 8;
   dest[7] = frame->data_length;
-  memcpy(dest+8, frame->data, frame->data_length);
-
   return 8 + frame->data_length;
 }
 

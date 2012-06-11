@@ -161,24 +161,34 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 		  frame.protocol_version = 2;
 		  frame.control_frame_type = SPDY_CONTROL_RST_STREAM;
 		  frame.flags = 0;
-		  static uint8_t rst[] = {'\0', '\0', '\0', '\1', '\0', '\0', '\0', '\1'};
+		  static uint8_t rst[] = {'\0', '\0', '\0', '\3', '\0', '\0', '\0', '\1'};
 		  frame.data_length = 8;
 		  frame.data = rst;
 
-		  uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];
-		  uint32_t packed_size = spdy_frame_pack(&frame, packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE);
-		  printf("wanting to send\n");
+		  printf("going to send..\n");
 
-		  const uint8_t test_packet_syn_reply[] = {0x80, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
-		  printf("framesize: %u\n", sizeof(test_packet_syn_reply));
-		  int n;
-		  for(n=0; n < sizeof(test_packet_syn_reply); n++) {
-		    printf("%02x ",(uint8_t)test_packet_syn_reply[n]);
+		  if(client_spdy_session->received_frame_count > 1)
+		  {
+		  	printf("choking client, RST_STREAM 3 incoming\n");
+		  	uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];
+		  	uint32_t packed_size = spdy_frame_pack(&frame, packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE);
+		  	res = send(watcher->fd, packed_frame, packed_size, 0);
+		  	printf("send() result for choke RSTSTREAM: %d, size was: %d \n", res, packed_size);
 		  }
-		  printf("\n");
-		  
-		  res = send(watcher->fd, test_packet_syn_reply, sizeof(test_packet_syn_reply), 0);
-		  printf("send() result: %d\n", res);
+		  else
+		  {
+		  	printf("first frame, looks good, sending reply.\n");
+
+		  	const uint8_t test_packet_syn_reply[] = {0x80, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
+		  	res = send(watcher->fd, test_packet_syn_reply, sizeof(test_packet_syn_reply), 0);
+		  	printf("send() result for SYNREPLY: %d\n", res);
+
+		  	const uint8_t test_packet_data_frame[] = {0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x0d, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x53, 0x50, 0x44, 0x59, 0x2e};
+		  	res = send(watcher->fd, test_packet_data_frame, sizeof(test_packet_data_frame), 0);
+		  	printf("send() result for DATA_FIN: %d\n", res);
+		  }
+
+
 		}
 	}
 

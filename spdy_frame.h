@@ -76,5 +76,6 @@ uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size)
 // printf details about the `frame`.
 int spdy_frame_dump(spdy_frame_t *frame);
 
+// Frees the parsed frame data, if any. Only to be called when spdy_frame_parse was used.
 int spdy_frame_destroy(spdy_frame_t *frame);
 #endif

@@ -12,9 +12,6 @@ int spdy_frame_create(spdy_frame_t *frame)
 
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
 {
-  int32_t compressed_headers_at_offset = -1; // counting from first byte after length, -1 = none
-  char has_data = 0;
-
   if(frame->parsed > 0)
     return SPDY_FRAME_ERROR_ALREADY_PARSED;
 
@@ -22,6 +19,17 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
     return SPDY_FRAME_ERROR_INCOMPLETE;
 
   uint32_t data_length = (source[5] << 16) + (source[6] << 8) + source[7];
+
+  DEBUG2("parsing frame, source_len=%u. first 32 bytes:\n", source_len);
+  int n;
+  for(n=0; n < (32 > source_len ? source_len : 32); n++) {
+    DEBUG2("%02x ",(uint8_t)source[n]);
+  }
+  DEBUG2("\nlast 32 bytes:\n", source_len);
+  for(n=(31 > source_len ? source_len : 31); n>0; n--) {
+    DEBUG2("%02x ",(uint8_t)source[source_len-n]);
+  }
+  DEBUG1("\n");
 
   if(source_len < 8 + data_length) // for the moment we only parse complete frames
     return SPDY_FRAME_ERROR_INCOMPLETE;
@@ -37,11 +45,9 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   else
   {
     frame->stream_id = ((source[0] & (0xff >> 1)) << 24) + (source[1] << 16) + (source[2] << 8) + source[3];
-    has_data = 1;
   }
 
   frame->flags = source[4];
-
 
   switch(frame->control_frame_type)
   {
@@ -50,8 +56,6 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
       frame->control_header.syn_stream.associated_stream_id = ((source[12] & (0xff >> 1)) << 24) + (source[13] << 16) + (source[14] << 8) + source[15];
       frame->control_header.syn_stream.priority = (source[16] & 0xfff00000) >> 5;
       frame->control_header.syn_stream.slot = source[17];
-
-      compressed_headers_at_offset = 10;
       break;
     case SPDY_CONTROL_SYN_REPLY:
       frame->control_header.syn_reply.stream_id = ((source[8] & (0xff >> 1)) << 24) + (source[9] << 16) + (source[10] << 8) + source[11];
@@ -70,8 +74,7 @@ int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len)
   }
 
   frame->data = malloc(frame->data_length);
-  printf("first char: %d\n", source[8]);
-  printf("second char: %d\n", source[9]);
+  DEBUG2("parsing succeeded, first data byte: %x\n", source[8]);
   memcpy(frame->data, &source[8], frame->data_length);
 
   frame->parsed = 1; // track that we have allocated memory for headers etc

@@ -15,6 +15,8 @@ typedef struct
   uint8_t *data;
 } spdy_headers_t;
 
+int spdy_headers_create(spdy_headers_t *headers);
+
 int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *source, uint32_t source_len);
 
 uint8_t *spdy_headers_iterate(spdy_headers_t *headers, uint8_t *position);

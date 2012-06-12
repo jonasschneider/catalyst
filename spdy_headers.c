@@ -30,6 +30,41 @@ int spdy_headers_create(spdy_headers_t *headers)
   memset(headers, 0, sizeof(spdy_headers_t));
 }
 
+int spdy_headers_add(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
+{
+  if(!headers->data)
+  {
+    headers->data_length = 2;
+  }
+
+  int offset = headers->data_length;
+  headers->data_length += 2 + strlen(n) + 2 + strlen(v);
+
+  if(headers->data)
+  {
+    headers->data = realloc(headers->data, headers->data_length);
+  }
+  else
+  {
+    headers->data = malloc(headers->data_length);
+  }
+
+  headers->entry_count++;
+
+  memcpy(headers->data+offset+2, n, strlen(n));
+  memcpy(headers->data+offset+2+strlen(n)+2, v, strlen(v));
+
+  headers->data[offset] = strlen(n) >> 8;
+  headers->data[offset+1] = strlen(n);
+
+  headers->data[offset+2+strlen(n)] = strlen(v) >> 8;
+  headers->data[offset+2+strlen(n)+1] = strlen(v);
+
+  headers->data[0] = headers->entry_count >> 8;
+  headers->data[1] = headers->entry_count;
+
+  return 0;
+}
 
 int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *source, uint32_t source_len)
 {

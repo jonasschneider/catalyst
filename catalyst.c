@@ -12,6 +12,7 @@
 
 void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
 void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
+void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
 
 
 	 // every watcher type has its own typedef'd struct
@@ -69,6 +70,12 @@ timeout_cb (EV_P_ ev_timer *w, int revents)
 int total_clients = 0; // Total number of connected clients
 
 
+typedef struct
+{
+  spdy_session_t spdy_session;
+
+} catalyst_connection_t;
+
 /* Accept client requests */
 void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 {
@@ -96,14 +103,21 @@ void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	printf("Successfully connected with client.\n");
 	printf("%d client(s) connected.\n", total_clients);
 
-	spdy_session_t *spdy_session = malloc(sizeof(spdy_session_t));
-	spdy_session_create(spdy_session);
+	catalyst_connection_t *connection = malloc(sizeof(catalyst_connection_t));
+	spdy_session_create(&connection->spdy_session);
 
-	w_client->data = spdy_session;
+	w_client->data = connection;
 
 	// Initialize and start watcher to read client requests
 	ev_io_init(w_client, read_cb, client_sd, EV_READ);
+	//ev_io_init(w_client, write_cb, client_sd, EV_WRITE);
 	ev_io_start(loop, w_client);
+}
+
+
+void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
+{
+	printf("can write to client");
 }
 
 /* Read client message */
@@ -117,11 +131,13 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 	return;
 	}
 
-	spdy_session_t *client_spdy_session = watcher->data;
+	catalyst_connection_t *connection = watcher->data;
+	spdy_session_t *spdy_session = &connection->spdy_session;
 
-	uint8_t *buffer_cursor = client_spdy_session->parse_buffer + client_spdy_session->avail_to_parse;
-	printf("before read: avail_to_parse=%u\n", client_spdy_session->avail_to_parse);
-	size_t buffer_space = SPDY_SESSION_PARSE_BUFFER_SIZE - client_spdy_session->avail_to_parse;
+	printf("start of callback: avail_to_parse=%u, addr=%x\n", spdy_session->avail_to_parse, &spdy_session->avail_to_parse);
+
+	uint8_t *buffer_cursor = spdy_session->parse_buffer + spdy_session->avail_to_parse;
+	size_t buffer_space = SPDY_SESSION_PARSE_BUFFER_SIZE - spdy_session->avail_to_parse;
 
 	printf("allowing read of %zu\n", buffer_space);
 
@@ -150,9 +166,8 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 	}
 	else
 	{
-		printf("message:%s\n",buffer);
-		client_spdy_session->avail_to_parse += read;
-		int res = spdy_session_parse_next_frame(client_spdy_session);
+		spdy_session->avail_to_parse += read;
+		int res = spdy_session_parse_next_frame(&connection->spdy_session);
 		printf("spdy_session_parse_next_frame result: %d\n", res);
 		if(res == 0) {
 			spdy_frame_t frame;
@@ -167,7 +182,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 
 		  printf("going to send..\n");
 
-		  if(client_spdy_session->received_frame_count > 1)
+		  if(spdy_session->received_frame_count > 1)
 		  {
 		  	printf("choking client, RST_STREAM 3 incoming\n");
 		  	uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];

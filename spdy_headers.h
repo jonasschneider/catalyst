@@ -11,7 +11,7 @@
 typedef struct
 {
   uint32_t entry_count;
-  uint32_t data_length;
+  size_t data_length;
   uint8_t *data;
 } spdy_headers_t;
 
@@ -21,6 +21,10 @@ int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *sour
 
 uint8_t *spdy_headers_iterate(spdy_headers_t *headers, uint8_t *position);
 int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf);
+
+// Deflate the headers into *out. *out should be at least of size headers->data_length to ensure
+// the compressed headers fit in there. Returns the number of used bytes within *out.
+uint8_t *spdy_headers_deflate(spdy_headers_t *headers, z_stream *zstrm, size_t *size);
 
 void spdy_headers_dump(spdy_headers_t *headers);
 void spdy_headers_destroy(spdy_headers_t *headers);

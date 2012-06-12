@@ -66,11 +66,57 @@ int spdy_headers_add(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
   return 0;
 }
 
+
+uint8_t *spdy_headers_deflate(spdy_headers_t *headers, z_stream *zstrm, size_t *size)
+{
+  int ret;
+  size_t buffer_size = headers->data_length + 20;
+
+  uint8_t *out = malloc(buffer_size);
+
+  zstrm->next_in = headers->data;
+  zstrm->avail_in = headers->data_length;
+
+  zstrm->next_out = out;
+  zstrm->avail_out = buffer_size;
+  size_t output_size = buffer_size;
+
+  do {
+    DEBUG4("in avail: %u, out avail=%u, total_in=%u\n",zstrm->avail_in,zstrm->avail_out, zstrm->total_in);
+    ret = deflate(zstrm, Z_SYNC_FLUSH);
+
+    if(ret != Z_OK) {
+        return 0;
+    }
+
+    output_size -= zstrm->avail_out;
+
+    DEBUG4("after: in avail: %u, out avail=%u, total_in=%u\n",zstrm->avail_in,zstrm->avail_out, zstrm->total_in);
+    DEBUG2(", outputsize=%u\n", output_size);
+
+    if(zstrm->avail_in > 0) {
+      buffer_size += headers->data_length;
+      DEBUG2("need bigger deflate output buffer, reallocing to %u\n", buffer_size);
+
+      out = realloc(out, buffer_size);
+
+      zstrm->avail_out += headers->data_length;
+      output_size += headers->data_length;
+      zstrm->next_out = out + output_size;
+    }
+  } while(zstrm->avail_in > 0);
+
+  *size = output_size;
+
+  return out;
+}
+
+
+
+
 int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *source, uint32_t source_len)
 {
     int ret;
-    unsigned have = 0;
-
     const int initial_output_size = 256;
     if(headers->data)
     {

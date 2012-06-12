@@ -73,6 +73,8 @@ int total_clients = 0; // Total number of connected clients
 typedef struct
 {
   spdy_session_t spdy_session;
+  struct ev_io *read_watcher;
+  struct ev_io *write_watcher;
 
 } catalyst_connection_t;
 
@@ -82,8 +84,6 @@ void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 	int client_sd;
-	struct ev_io *w_client = (struct ev_io*) malloc (sizeof(struct ev_io));
-
 	if(EV_ERROR & revents)
 	{
 	perror("got invalid event");
@@ -103,21 +103,26 @@ void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	printf("Successfully connected with client.\n");
 	printf("%d client(s) connected.\n", total_clients);
 
-	catalyst_connection_t *connection = malloc(sizeof(catalyst_connection_t));
+	catalyst_connection_t *connection = (catalyst_connection_t*)malloc(sizeof(catalyst_connection_t));
+
+	connection->read_watcher = (struct ev_io*) malloc (sizeof(struct ev_io));
+	connection->write_watcher = (struct ev_io*) malloc (sizeof(struct ev_io));
 	spdy_session_create(&connection->spdy_session);
 
-	w_client->data = connection;
+	connection->read_watcher->data = connection;
+	connection->write_watcher->data = connection;
 
-	// Initialize and start watcher to read client requests
-	ev_io_init(w_client, read_cb, client_sd, EV_READ);
-	//ev_io_init(w_client, write_cb, client_sd, EV_WRITE);
-	ev_io_start(loop, w_client);
+	ev_io_init(connection->read_watcher, read_cb, client_sd, EV_READ);
+	ev_io_init(connection->write_watcher, write_cb, client_sd, EV_WRITE);
+	ev_io_start(loop, connection->read_watcher);
 }
 
 
 void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 {
 	printf("can write to client");
+	catalyst_connection_t *connection = watcher->data;
+	ev_io_stop(loop, connection->write_watcher);
 }
 
 /* Read client message */
@@ -158,7 +163,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 	{
 		// Stop and free watcher if client socket is closing, FIME: free spdy
 		ev_io_stop(loop,watcher);
-		free(watcher);
+		free(connection);
 		perror("peer might closing");
 		total_clients --; // Decrement total_clients count
 		printf("%d client(s) connected.\n", total_clients);
@@ -170,36 +175,64 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
 		int res = spdy_session_parse_next_frame(&connection->spdy_session);
 		printf("spdy_session_parse_next_frame result: %d\n", res);
 		if(res == 0) {
-			spdy_frame_t frame;
-
-		  frame.frame_type = SPDY_CONTROL_FRAME;
-		  frame.protocol_version = 2;
-		  frame.control_frame_type = SPDY_CONTROL_RST_STREAM;
-		  frame.flags = 0;
-		  static uint8_t rst[] = {'\0', '\0', '\0', '\3', '\0', '\0', '\0', '\1'};
-		  frame.data_length = 8;
-		  frame.data = rst;
-
-		  printf("going to send..\n");
+			uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];
+			uint32_t packed_size;
 
 		  if(spdy_session->received_frame_count > 1)
 		  {
-		  	printf("choking client, RST_STREAM 3 incoming\n");
-		  	uint8_t packed_frame[SPDY_SESSION_PARSE_BUFFER_SIZE];
-		  	uint32_t packed_size = spdy_frame_pack(&frame, packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE);
-		  	res = send(watcher->fd, packed_frame, packed_size, 0);
-		  	printf("send() result for choke RSTSTREAM: %d, size was: %d \n", res, packed_size);
+		  	ev_io_start(loop, connection->write_watcher);
+
+		  	if(spdy_session->last_frame.frame_type == SPDY_CONTROL_FRAME && spdy_session->last_frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
+		  	{
+				  packed_size = spdy_frame_pack_rst_stream(packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE,
+	                                                 spdy_session->last_frame.control_header.syn_stream.stream_id /*stream_id*/,
+	                                                 1 /*status*/,
+	                                                 0 /*flags*/);
+			  	
+			  	res = send(watcher->fd, packed_frame, packed_size, 0);
+			  	printf("send() result for choke RSTSTREAM: %d, size was: %d \n", res, packed_size);
+		  	}
+		  	else
+			  {
+			  	printf("received an additional frame, but it was no SYN_STREAM\n");
+			  }
 		  }
 		  else
 		  {
 		  	printf("first frame, looks good, sending reply.\n");
 
-		  	const uint8_t test_packet_syn_reply[] = {0x80, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
-		  	res = send(watcher->fd, test_packet_syn_reply, sizeof(test_packet_syn_reply), 0);
+		  	const uint8_t test_headers[] = {0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
+
+		  	spdy_headers_t my_headers;
+		  	spdy_headers_create(&my_headers);
+
+		  	spdy_headers_add(&my_headers, "hello", "world");
+		  	size_t zipped_header_len;
+		  	uint8_t *zipped_headers = spdy_headers_deflate(&my_headers, &spdy_session->deflate_zstrm, &zipped_header_len);
+
+		  	packed_size = spdy_frame_pack_syn_reply(packed_frame, 150,
+                                                1 /*stream_id*/,
+                                                zipped_headers /*headers*/,
+                                                zipped_header_len,
+                                                0 /*flags*/);
+        printf("zipped_header_len: %u, packed_size: %u", zipped_header_len, packed_size);
+        uint32_t n;
+        for(n=0; n<packed_size; n++) {
+			    printf("%02x ",(uint8_t)packed_frame[n]);
+			  }
+  			printf("\n");
+		  	res = send(watcher->fd, packed_frame, packed_size, 0);
 		  	printf("send() result for SYNREPLY: %d\n", res);
 
-		  	const uint8_t test_packet_data_frame[] = {0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x0d, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x53, 0x50, 0x44, 0x59, 0x2e};
-		  	res = send(watcher->fd, test_packet_data_frame, sizeof(test_packet_data_frame), 0);
+
+		  	const uint8_t test_data[] = "This is SPDY.";
+			  packed_size = spdy_frame_pack_data(packed_frame, 40,
+                                          1 /*stream_id*/,
+                                          test_data /*data*/,
+                                          sizeof(test_data)-1,
+                                          1 /*flags*/);
+
+		  	res = send(watcher->fd, packed_frame, packed_size, 0);
 		  	printf("send() result for DATA_FIN: %d\n", res);
 		  }
 

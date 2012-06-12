@@ -1,4 +1,5 @@
-OPT := -DDEBUG_CATALYST -lev -lz -g -I.
+OPT := -lev -lz -g -I.
+#OPT += -DDEBUG_CATALYST
 CC := gcc 
 TESTS := $(shell echo test/*.test.c)
 SRC := spdy_frame.c spdy_headers.c spdy_session.c

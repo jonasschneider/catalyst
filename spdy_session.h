@@ -13,7 +13,7 @@ typedef struct
   uint8_t parse_buffer[SPDY_SESSION_PARSE_BUFFER_SIZE];
   size_t avail_to_parse;
   z_stream inflate_zstrm;
-  //z_stream deflate_zstrm;
+  z_stream deflate_zstrm;
 
   spdy_frame_t last_frame;
   spdy_headers_t last_frame_headers;

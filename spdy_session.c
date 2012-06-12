@@ -18,6 +18,13 @@ int spdy_session_create(spdy_session_t *session)
   session->inflate_zstrm.avail_in = 0;
   session->inflate_zstrm.next_in = Z_NULL;
   inflateInit(&session->inflate_zstrm);
+
+  session->deflate_zstrm.zalloc = Z_NULL;
+  session->deflate_zstrm.zfree = Z_NULL;
+  session->deflate_zstrm.opaque = Z_NULL;
+  session->deflate_zstrm.avail_in = 0;
+  session->deflate_zstrm.next_in = Z_NULL;
+  deflateInit(&session->deflate_zstrm, Z_DEFAULT_COMPRESSION);
 }
 
 
@@ -71,5 +78,6 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
 void spdy_session_destroy(spdy_session_t *session)
 {
   inflateEnd(&session->inflate_zstrm);
+  deflateEnd(&session->deflate_zstrm);
   spdy_headers_destroy(&session->last_frame_headers);
 }

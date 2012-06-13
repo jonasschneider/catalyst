@@ -34,6 +34,37 @@ void test_parse()
 
 
 
+void test_queue_frame()
+{
+  spdy_session_t session;
+  spdy_session_create(&session);
+  assert(session.received_frame_count == 0);
+
+  assert(session.send_queue_length == 0);
+  assert(session.send_queue_front == 0);
+
+  spdy_session_queue_frame(&session, (uint8_t*)test_packet_data_frame, sizeof(test_packet_data_frame));
+  assert(session.send_queue_length == 1);
+
+  uint8_t *queued_frame_data;
+  size_t queued_frame_length;
+
+  queued_frame_data = spdy_session_unqueue_frame(&session, &queued_frame_length);
+  assert(session.send_queue_length == 0);
+  assert(session.send_queue_front == 1);
+
+  printf("%x", queued_frame_data);
+  assert(queued_frame_length == sizeof(test_packet_data_frame));
+  assert(queued_frame_data == test_packet_data_frame);
+
+  assert(spdy_session_unqueue_frame(&session, &queued_frame_length) == 0);
+  assert(spdy_session_unqueue_frame(&session, &queued_frame_length) == 0);
+
+  spdy_session_destroy(&session);
+}
+
+
+
 void test_parse_multipart()
 {
   spdy_session_t session;
@@ -144,6 +175,8 @@ int main() {
   test_parse_multipart();
   test_parse_multiframe();
   test_zlib_persistence();
+
+  test_queue_frame();
 
   fprintf(stderr, "%c[%d;%d;%dmspdy_session passed.", 0x1B, 1,32,40);
   fprintf(stderr, "%c[%dm\n", 0x1B, 0);

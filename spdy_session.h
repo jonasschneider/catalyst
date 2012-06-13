@@ -4,9 +4,16 @@
 #include "spdy_frame.h"
 
 #define SPDY_SESSION_PARSE_BUFFER_SIZE 8192
+#define SPDY_SESSION_SEND_QUEUE_MAXLENGTH 64
 
 #define SPDY_SESSION_ERROR_NEED_MORE -1
 #define SPDY_SESSION_ERROR_PARSE_ERROR -2
+
+struct _spdy_send_queue_item
+{
+  size_t length;
+  uint8_t *data;
+};
 
 typedef struct
 {
@@ -14,6 +21,10 @@ typedef struct
   size_t avail_to_parse;
   z_stream inflate_zstrm;
   z_stream deflate_zstrm;
+
+  uint32_t send_queue_length;
+  uint32_t send_queue_front;
+  struct _spdy_send_queue_item send_queue[SPDY_SESSION_SEND_QUEUE_MAXLENGTH];
 
   spdy_frame_t last_frame;
   spdy_headers_t last_frame_headers;
@@ -24,5 +35,9 @@ typedef struct
 
 int spdy_session_create(spdy_session_t *session);
 int spdy_session_parse_next_frame(spdy_session_t *session);
+
+int spdy_session_queue_frame(spdy_session_t *session, uint8_t *data, size_t length);
+uint8_t *spdy_session_unqueue_frame(spdy_session_t *session, size_t *length);
+
 void spdy_session_destroy(spdy_session_t *session);
 # endif

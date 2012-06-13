@@ -104,10 +104,6 @@ void test_deflate()
   printf("=== deflate done, size=%u\n", compressed_siz);
   assert(out > 0);
 
-  for(n=0; n < compressed_siz; n++) {
-    printf("%02x ",(uint8_t)(out+(uint8_t)n));
-  }
-
   spdy_headers_t the_headers2;
   spdy_headers_t *headers2 = &the_headers2;
   spdy_headers_create(headers2);

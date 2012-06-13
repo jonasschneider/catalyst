@@ -75,6 +75,50 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
 
 
 
+
+
+int spdy_session_queue_frame(spdy_session_t *session, uint8_t *data, size_t length)
+{
+  struct _spdy_send_queue_item item;
+  item.data = data;
+  item.length = length;
+
+  if(session->send_queue_length == SPDY_SESSION_SEND_QUEUE_MAXLENGTH)
+    return -1;
+
+  uint32_t rear_index = (session->send_queue_front + session->send_queue_length) % SPDY_SESSION_SEND_QUEUE_MAXLENGTH;
+  session->send_queue[rear_index] = item;
+
+  session->send_queue_length++;
+}
+
+
+
+
+uint8_t *spdy_session_unqueue_frame(spdy_session_t *session, size_t *length)
+{
+  printf("send queue len: %u, front: %u\n", session->send_queue_length, session->send_queue_front);
+  if(session->send_queue_length == 0)
+    return 0;
+
+  struct _spdy_send_queue_item item = session->send_queue[session->send_queue_front];
+
+  printf("dequeued: len=%u, data=%x\n", item.length, item.data);
+
+  session->send_queue_length--;
+  session->send_queue_front++;
+  if(session->send_queue_front == SPDY_SESSION_SEND_QUEUE_MAXLENGTH)
+    session->send_queue_front = 0;
+
+  *length = item.length;
+  return item.data;
+}
+
+
+
+
+
+
 void spdy_session_destroy(spdy_session_t *session)
 {
   inflateEnd(&session->inflate_zstrm);

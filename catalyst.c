@@ -158,6 +158,8 @@ void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
     printf("completely sent a frame of %u.\n", frame_len, res);
     free(frame_data);
     connection->half_sent_frame = 0;
+    connection->half_sent_frame_length = 0;
+    connection->half_sent_frame_sent = 0;
   }
   else if(res > 0)
   {
@@ -165,7 +167,7 @@ void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
     printf("only sent %d bytes of the %u long frame.\n", res, frame_len);
     connection->half_sent_frame = frame_data;
     connection->half_sent_frame_length = frame_len;
-    connection->half_sent_frame_sent = (size_t)res;
+    connection->half_sent_frame_sent += (size_t)res;
   }
   else
   {

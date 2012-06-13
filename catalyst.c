@@ -240,13 +240,13 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
       {
         if(spdy_session->last_frame.frame_type == SPDY_CONTROL_FRAME && spdy_session->last_frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
         {
+          packed_frame = malloc(SPDY_SESSION_PARSE_BUFFER_SIZE);
           packed_size = spdy_frame_pack_rst_stream(packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE,
                                                    spdy_session->last_frame.control_header.syn_stream.stream_id /*stream_id*/,
                                                    1 /*status*/,
                                                    0 /*flags*/);
           
-          res = send(watcher->fd, packed_frame, packed_size, 0);
-          printf("send() result for choke RSTSTREAM: %d, size was: %d \n", res, packed_size);
+          spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
         }
         else
         {
@@ -255,14 +255,15 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
       }
       else
       {
-        printf("first frame, looks good, sending reply.\n");
-
         const uint8_t test_headers[] = {0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
 
         spdy_headers_t my_headers;
         spdy_headers_create(&my_headers);
 
         spdy_headers_add(&my_headers, "hello", "world");
+        spdy_headers_add(&my_headers, "version", "HTTP/1.1");
+        spdy_headers_add(&my_headers, "status", "200 OK");
+
         size_t zipped_header_len;
         uint8_t *zipped_headers = spdy_headers_deflate(&my_headers, &spdy_session->deflate_zstrm, &zipped_header_len);
 
@@ -274,14 +275,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
                                                 zipped_header_len,
                                                 0 /*flags*/);
         printf("zipped_header_len: %u, packed_size: %u", zipped_header_len, packed_size);
-        uint32_t n;
-        for(n=0; n<packed_size; n++) {
-          printf("%02x ",(uint8_t)packed_frame[n]);
-        }
-        printf("\n");
         spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
-        //res = send(watcher->fd, packed_frame, packed_size, 0);
-        //printf("send() result for SYNREPLY: %d\n", res);
 
         packed_frame = malloc(SPDY_SESSION_PARSE_BUFFER_SIZE);
         const uint8_t test_data[] = "This is SPDY.";
@@ -291,9 +285,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
                                           sizeof(test_data)-1,
                                           1 /*flags*/);
 
-        //res = send(watcher->fd, packed_frame, packed_size, 0);
         spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
-        printf("send() result for DATA_FIN: %d\n", res);
       }
 
 

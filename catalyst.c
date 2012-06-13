@@ -253,9 +253,9 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
         spdy_headers_t my_headers;
         spdy_headers_create(&my_headers);
 
-        spdy_headers_add(&my_headers, "hello", "world");
-        spdy_headers_add(&my_headers, "version", "HTTP/1.1");
-        spdy_headers_add(&my_headers, "status", "200 OK");
+        spdy_headers_add_char(&my_headers, "hello", "world");
+        spdy_headers_add_char(&my_headers, "version", "HTTP/1.1");
+        spdy_headers_add_char(&my_headers, "status", "200 OK");
 
         uint8_t synrep_flags = 0;
         res = spdy_session_send_syn_reply(spdy_session, 1, &my_headers, synrep_flags);

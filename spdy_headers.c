@@ -31,12 +31,7 @@ int spdy_headers_create(spdy_headers_t *headers)
   return 0;
 }
 
-int spdy_headers_add(spdy_headers_t *headers, char *n, char *v)
-{
-  return spdy_headers_add_byte(headers, (uint8_t*)n, (uint8_t*)v);
-}
-
-int spdy_headers_add_byte(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
+int spdy_headers_add(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
 {
   int nlen = strlen((const char*)n);
   int vlen = strlen((const char*)v);
@@ -74,6 +69,12 @@ int spdy_headers_add_byte(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
 
   return 0;
 }
+
+int spdy_headers_add_char(spdy_headers_t *headers, char *n, char *v)
+{
+  return spdy_headers_add(headers, (uint8_t*)n, (uint8_t*)v);
+}
+
 
 
 uint8_t *spdy_headers_deflate(spdy_headers_t *headers, z_stream *zstrm, size_t *size)
@@ -250,6 +251,11 @@ int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
   strncpy((char * __restrict__)vbuf, (char * __restrict__)position+2, SPDY_HEADERS_VALUE_SIZE);
 
   return 0;
+}
+
+int spdy_headers_get_char(uint8_t *position, char *nbuf, char *vbuf)
+{
+  return spdy_headers_get(position, (uint8_t*)nbuf, (uint8_t*)vbuf);
 }
 
 void spdy_headers_dump(spdy_headers_t *headers)

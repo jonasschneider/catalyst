@@ -53,7 +53,6 @@ void test_queue_frame()
   assert(session.send_queue_length == 0);
   assert(session.send_queue_front == 1);
 
-  printf("%x", queued_frame_data);
   assert(queued_frame_length == sizeof(test_packet_data_frame));
   assert(queued_frame_data == test_packet_data_frame);
 

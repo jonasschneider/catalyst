@@ -60,8 +60,8 @@ void test_add()
   spdy_headers_t *headers = &the_headers;
   spdy_headers_create(headers);
 
-  spdy_headers_add(headers, "status", "200");
-  spdy_headers_add(headers, "a", "b");
+  spdy_headers_add_char(headers, "status", "200");
+  spdy_headers_add_char(headers, "a", "b");
 
   const uint8_t out[] = {0x00, 0x02, 0x00, 0x06, 's', 't', 'a', 't', 'u', 's', 0x00, 0x03, '2', '0', '0', 0x00, 0x01, 'a', 0x00, 0x01, 'b'};
   assert(headers->data_length == sizeof(out));
@@ -85,12 +85,11 @@ void test_deflate()
   deflatestream.avail_in = 0;
   deflatestream.next_in = Z_NULL;
   deflateInit(&deflatestream, Z_DEFAULT_COMPRESSION);
-  //spdy_headers_add(headers, "status", "200");
-  spdy_headers_add(headers, "a", "b");
+  //spdy_headers_add_char(headers, "status", "200");
+  spdy_headers_add_char(headers, "a", "b");
 
   
   size_t n;
-  int res;
 
   for(n=0; n < headers->data_length; n++) {
     printf("%02x ",(uint8_t)headers->data[n]);
@@ -174,15 +173,15 @@ void test_iterate()
 
   spdy_headers_dump(headers);
 
-  uint8_t nbuf[SPDY_HEADERS_NAME_SIZE];
-  uint8_t vbuf[SPDY_HEADERS_VALUE_SIZE];
+  char nbuf[SPDY_HEADERS_NAME_SIZE];
+  char vbuf[SPDY_HEADERS_VALUE_SIZE];
   uint8_t *p=0;
   uint8_t n=0;
 
-  while(p = spdy_headers_iterate(headers, p))
+  while((p = spdy_headers_iterate(headers, p)))
   {
     n++;
-    assert(spdy_headers_get(p, nbuf, vbuf) == 0);
+    assert(spdy_headers_get_char(p, nbuf, vbuf) == 0);
     if(n==6)
     {
       assert(strcmp(nbuf, "host") == 0);

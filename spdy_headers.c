@@ -28,17 +28,26 @@ static const char spdy_dictionary[] =
 int spdy_headers_create(spdy_headers_t *headers)
 {
   memset(headers, 0, sizeof(spdy_headers_t));
+  return 0;
 }
 
-int spdy_headers_add(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
+int spdy_headers_add(spdy_headers_t *headers, char *n, char *v)
 {
+  return spdy_headers_add_byte(headers, (uint8_t*)n, (uint8_t*)v);
+}
+
+int spdy_headers_add_byte(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
+{
+  int nlen = strlen((const char*)n);
+  int vlen = strlen((const char*)v);
+
   if(!headers->data)
   {
     headers->data_length = 2;
   }
 
   int offset = headers->data_length;
-  headers->data_length += 2 + strlen(n) + 2 + strlen(v);
+  headers->data_length += 2 + nlen + 2 + vlen;
 
   if(headers->data)
   {
@@ -51,14 +60,14 @@ int spdy_headers_add(spdy_headers_t *headers, uint8_t *n, uint8_t *v)
 
   headers->entry_count++;
 
-  memcpy(headers->data+offset+2, n, strlen(n));
-  memcpy(headers->data+offset+2+strlen(n)+2, v, strlen(v));
+  memcpy(headers->data+offset+2, n, nlen);
+  memcpy(headers->data+offset+2+nlen+2, v, vlen);
 
-  headers->data[offset] = strlen(n) >> 8;
-  headers->data[offset+1] = strlen(n);
+  headers->data[offset] = nlen >> 8;
+  headers->data[offset+1] = nlen;
 
-  headers->data[offset+2+strlen(n)] = strlen(v) >> 8;
-  headers->data[offset+2+strlen(n)+1] = strlen(v);
+  headers->data[offset+2+nlen] = vlen >> 8;
+  headers->data[offset+2+nlen+1] = vlen;
 
   headers->data[0] = headers->entry_count >> 8;
   headers->data[1] = headers->entry_count;
@@ -152,7 +161,7 @@ int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *sour
         if(ret == Z_NEED_DICT)
         {
           DEBUG1("zlib needs dict, retrying\n");
-          inflateSetDictionary(zstrm, spdy_dictionary, sizeof(spdy_dictionary));
+          inflateSetDictionary(zstrm, (const Bytef *)spdy_dictionary, sizeof(spdy_dictionary));
           ret = inflate(zstrm, Z_SYNC_FLUSH);
         }
         DEBUG3("inflate returned %d, msg: %s\n", ret, zstrm->msg);
@@ -169,7 +178,6 @@ int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *sour
           output_size = output_size + initial_output_size;
           DEBUG2("need bigger inflate output buffer, reallocing to %u\n", output_size);
 
-          uint8_t *oldptr = headers->data;
           headers->data = realloc(headers->data, output_size);
 
          zstrm->avail_out += initial_output_size;
@@ -230,7 +238,7 @@ int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
   {
     return -1;
   }
-  strncpy(nbuf, position+2, SPDY_HEADERS_NAME_SIZE);
+  strncpy((char * __restrict__)nbuf, (char * __restrict__)position+2, SPDY_HEADERS_NAME_SIZE);
 
   position += 2 + name_len;
 
@@ -239,7 +247,7 @@ int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf)
   {
     return -1;
   }
-  strncpy(vbuf, position+2, SPDY_HEADERS_VALUE_SIZE);
+  strncpy((char * __restrict__)vbuf, (char * __restrict__)position+2, SPDY_HEADERS_VALUE_SIZE);
 
   return 0;
 }

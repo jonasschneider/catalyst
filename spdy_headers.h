@@ -19,6 +19,9 @@ int spdy_headers_create(spdy_headers_t *headers);
 
 int spdy_headers_inflate(spdy_headers_t *headers, z_stream *zstrm, uint8_t *source, uint32_t source_len);
 
+int spdy_headers_add(spdy_headers_t *headers, char *n, char *v);
+int spdy_headers_add_byte(spdy_headers_t *headers, uint8_t *n, uint8_t *v);
+
 uint8_t *spdy_headers_iterate(spdy_headers_t *headers, uint8_t *position);
 int spdy_headers_get(uint8_t *position, uint8_t *nbuf, uint8_t *vbuf);
 

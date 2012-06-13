@@ -5,7 +5,7 @@
 #include "spdy_frame.h"
 #include "catalyst.h"
 
-static int spdy_frame_reset(spdy_frame_t *frame)
+static void spdy_frame_reset(spdy_frame_t *frame)
 {
   if(frame->data)
   {
@@ -16,7 +16,7 @@ static int spdy_frame_reset(spdy_frame_t *frame)
   memset(frame, 0, sizeof(spdy_frame_t));
 }
 
-int spdy_frame_create(spdy_frame_t *frame)
+void spdy_frame_create(spdy_frame_t *frame)
 {
   memset(frame, 0, sizeof(spdy_frame_t));
 }
@@ -239,7 +239,7 @@ uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size)
 }
 
 
-int spdy_frame_dump(spdy_frame_t *frame)
+void spdy_frame_dump(spdy_frame_t *frame)
 {
   printf("Frame type: %u\n", frame->frame_type);
   printf("SPDY frame v%d\n", frame->protocol_version);
@@ -249,7 +249,11 @@ int spdy_frame_dump(spdy_frame_t *frame)
 }
 
 
-int spdy_frame_destroy(spdy_frame_t *frame)
+void spdy_frame_destroy(spdy_frame_t *frame)
 {
-  spdy_frame_reset(frame);
+  if(frame->data)
+  {
+    free(frame->data);
+    frame->data = 0;
+  }
 }

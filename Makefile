@@ -1,4 +1,4 @@
-OPT := -lev -lz -g -I.
+OPT := -lev -lz -g -I. -Wall
 #OPT += -DDEBUG_CATALYST
 CC := gcc 
 TESTS := $(shell echo test/*.test.c)

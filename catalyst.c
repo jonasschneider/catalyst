@@ -7,6 +7,7 @@
 
 #include <malloc.h>
 #include "spdy_session.h"
+#include "spdy_headers.h"
 
 
 
@@ -53,13 +54,13 @@ stdin_cb (EV_P_ ev_io *w, int revents)
 }
 
 // another callback, this time for a time-out
-static void
-timeout_cb (EV_P_ ev_timer *w, int revents)
-{
- puts ("timeout");
- // this causes the innermost ev_loop to stop iterating
- ev_unloop (EV_A_ EVUNLOOP_ONE);
-}
+// static void
+// timeout_cb (EV_P_ ev_timer *w, int revents)
+// {
+//  puts ("timeout");
+//  // this causes the innermost ev_loop to stop iterating
+//  ev_unloop (EV_A_ EVUNLOOP_ONE);
+// }
 
 
 
@@ -156,7 +157,7 @@ void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
   if(res == frame_len)
   {
-    printf("completely sent a frame of %u.\n", frame_len, res);
+    printf("completely sent a frame of %u.\n", frame_len);
     free(frame_data);
     connection->half_sent_frame = 0;
     connection->half_sent_frame_length = 0;
@@ -188,7 +189,6 @@ void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
 
 void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
-  char buffer[BUFFER_SIZE];
   ssize_t read;
 
   if(EV_ERROR & revents)
@@ -200,7 +200,7 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
   catalyst_connection_t *connection = watcher->data;
   spdy_session_t *spdy_session = &connection->spdy_session;
 
-  printf("start of callback: avail_to_parse=%u, addr=%x\n", spdy_session->avail_to_parse, &spdy_session->avail_to_parse);
+  printf("start of callback: avail_to_parse=%u\n", spdy_session->avail_to_parse);
 
   uint8_t *buffer_cursor = spdy_session->parse_buffer + spdy_session->avail_to_parse;
   size_t buffer_space = SPDY_SESSION_PARSE_BUFFER_SIZE - spdy_session->avail_to_parse;
@@ -317,7 +317,6 @@ main (void)
 
   int sd;
   struct sockaddr_in addr;
-  int addr_len = sizeof(addr);
   struct ev_io w_accept;
 
   // Create server socket

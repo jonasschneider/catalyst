@@ -60,7 +60,7 @@ typedef struct
 
 } spdy_frame_t;
 
-int spdy_frame_create(spdy_frame_t *frame);
+void spdy_frame_create(spdy_frame_t *frame);
 
 // Tries to parse a `frame` from the buffer `source` of length `source_len`.
 // Returns
@@ -68,14 +68,20 @@ int spdy_frame_create(spdy_frame_t *frame);
 // - SPDY_FRAME_ERROR_INCOMPLETE if the buffer does not contain a complete frame.
 int spdy_frame_parse(spdy_frame_t *frame, uint8_t *source, uint32_t source_len);
 
+size_t spdy_frame_pack_syn_reply(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint8_t *headers, size_t headers_len, uint8_t flags);
+size_t spdy_frame_pack_rst_stream(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint32_t status, uint8_t flags);
+size_t spdy_frame_pack_ping(uint8_t *dest, size_t dest_size, uint32_t ping_id, uint8_t flags);
+size_t spdy_frame_pack_data(uint8_t *dest, size_t dest_size, uint32_t stream_id, uint8_t *data, size_t data_len, uint8_t flags);
+size_t spdy_frame_pack_goaway(uint8_t *dest, size_t dest_size, uint32_t last_good_stream_id, uint8_t flags);
+
 // Pack the `frame` into the `dest` buffer. The size of the buffer is specified
 // by `dest_size`. Return the number of bytes filled within the buffer,
 // or 0 if the frame is too large to fit the buffer.
 uint32_t spdy_frame_pack(spdy_frame_t *frame, uint8_t *dest, uint32_t dest_size);
 
 // printf details about the `frame`.
-int spdy_frame_dump(spdy_frame_t *frame);
+void spdy_frame_dump(spdy_frame_t *frame);
 
 // Frees the parsed frame data, if any. Only to be called when spdy_frame_parse was used.
-int spdy_frame_destroy(spdy_frame_t *frame);
+void spdy_frame_destroy(spdy_frame_t *frame);
 #endif

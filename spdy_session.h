@@ -34,7 +34,7 @@ typedef struct
 
 } spdy_session_t;
 
-int spdy_session_create(spdy_session_t *session);
+void spdy_session_create(spdy_session_t *session);
 int spdy_session_parse_next_frame(spdy_session_t *session);
 
 int spdy_session_send_syn_reply(spdy_session_t *session, uint32_t stream_id, spdy_headers_t *headers, uint8_t flags);

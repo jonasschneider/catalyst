@@ -6,7 +6,7 @@
 #include "spdy_frame.h"
 #include "catalyst.h"
 
-int spdy_session_create(spdy_session_t *session)
+void spdy_session_create(spdy_session_t *session)
 {
   memset(session, 0, sizeof(spdy_session_t));
   spdy_headers_create(&session->last_frame_headers);
@@ -162,8 +162,6 @@ uint8_t *spdy_session_unqueue_frame(spdy_session_t *session, size_t *length)
     return 0;
 
   struct _spdy_send_queue_item item = session->send_queue[session->send_queue_front];
-
-  printf("dequeued: len=%u, data=%x\n", item.length, item.data);
 
   session->send_queue_length--;
   session->send_queue_front++;

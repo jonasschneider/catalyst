@@ -146,13 +146,14 @@ void write_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
   {
     frame_data = spdy_session_unqueue_frame(&connection->spdy_session, &frame_len);
   }
+  res = send(watcher->fd, frame_data, frame_len, 0);
+
   size_t n;
   printf("<< ");
-  for(n=0; n<frame_len; n++)
+  for(n=0; n<res; n++)
     printf("%02x ", frame_data[n]);
   printf("\n");
 
-  res = send(watcher->fd, frame_data, frame_len, 0);
   if(res == frame_len)
   {
     printf("completely sent a frame of %u.\n", frame_len, res);
@@ -235,20 +236,12 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
     int res = spdy_session_parse_next_frame(&connection->spdy_session);
     printf("spdy_session_parse_next_frame result: %d\n", res);
     if(res == 0) {
-      uint8_t *packed_frame;
-      uint32_t packed_size;
-
       if(spdy_session->received_frame_count > 1)
       {
         if(spdy_session->last_frame.frame_type == SPDY_CONTROL_FRAME && spdy_session->last_frame.control_frame_type == SPDY_CONTROL_SYN_STREAM)
         {
-          packed_frame = malloc(SPDY_SESSION_PARSE_BUFFER_SIZE);
-          packed_size = spdy_frame_pack_rst_stream(packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE,
-                                                   spdy_session->last_frame.control_header.syn_stream.stream_id /*stream_id*/,
-                                                   1 /*status*/,
-                                                   0 /*flags*/);
-          
-          spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
+          res = spdy_session_send_rst_stream(spdy_session, spdy_session->last_frame.control_header.syn_stream.stream_id, 1 /*status*/, 0 /*flags*/);
+          printf("spdy_session_send_rst_stream result: %d\n", res);
         }
         else
         {
@@ -257,8 +250,6 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
       }
       else
       {
-        const uint8_t test_headers[] = {0x78, 0xbb, 0xdf, 0xa2, 0x51, 0xb2, 0x62, 0x60, 0x66, 0xe0, 0x41, 0x0e, 0x24, 0x06, 0x2e, 0x84, 0x1d, 0x0c, 0x6c, 0x10, 0xe5, 0x0c, 0x6c, 0xc0, 0x64, 0xac, 0xe0, 0xef, 0xcd, 0xc0, 0x0e, 0xd5, 0xc8, 0xc0, 0x01, 0x33, 0x0f, 0x00, 0x00, 0x00, 0xff, 0xff};
-
         spdy_headers_t my_headers;
         spdy_headers_create(&my_headers);
 
@@ -266,28 +257,16 @@ void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents){
         spdy_headers_add(&my_headers, "version", "HTTP/1.1");
         spdy_headers_add(&my_headers, "status", "200 OK");
 
-        size_t zipped_header_len;
-        uint8_t *zipped_headers = spdy_headers_deflate(&my_headers, &spdy_session->deflate_zstrm, &zipped_header_len);
+        uint8_t synrep_flags = 0;
+        res = spdy_session_send_syn_reply(spdy_session, 1, &my_headers, synrep_flags);
+        printf("spdy_session_send_syn_reply result: %d\n", res);
 
-        packed_frame = malloc(SPDY_SESSION_PARSE_BUFFER_SIZE);
 
-        packed_size = spdy_frame_pack_syn_reply(packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE,
-                                                1 /*stream_id*/,
-                                                zipped_headers /*headers*/,
-                                                zipped_header_len,
-                                                0 /*flags*/);
-        printf("zipped_header_len: %u, packed_size: %u", zipped_header_len, packed_size);
-        spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
-
-        packed_frame = malloc(SPDY_SESSION_PARSE_BUFFER_SIZE);
         const uint8_t test_data[] = "This is SPDY.";
-        packed_size = spdy_frame_pack_data(packed_frame, SPDY_SESSION_PARSE_BUFFER_SIZE,
-                                          1 /*stream_id*/,
-                                          test_data /*data*/,
-                                          sizeof(test_data)-1,
-                                          1 /*flags*/);
+        uint8_t data_flags = 1;
 
-        spdy_session_queue_frame(spdy_session, packed_frame, packed_size);
+        res = spdy_session_send_data(spdy_session, 1, (uint8_t*)test_data, sizeof(test_data)-1 /*skip the \0*/, data_flags);
+        printf("spdy_session_send_data result: %d\n", res);
       }
 
 

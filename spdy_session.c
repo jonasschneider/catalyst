@@ -76,6 +76,64 @@ int spdy_session_parse_next_frame(spdy_session_t *session)
 
 
 
+int spdy_session_send_syn_reply(spdy_session_t *session, uint32_t stream_id, spdy_headers_t *headers, uint8_t flags)
+{
+  uint8_t *packed_frame;
+  uint32_t packed_size;
+  packed_frame = malloc(SPDY_SESSION_FRAME_PACK_BUFFER_SIZE);
+
+  size_t zipped_header_len;
+  uint8_t *zipped_headers = spdy_headers_deflate(headers, &session->deflate_zstrm, &zipped_header_len);
+
+  packed_size = spdy_frame_pack_syn_reply(packed_frame, SPDY_SESSION_FRAME_PACK_BUFFER_SIZE,
+                                          stream_id,
+                                          zipped_headers,
+                                          zipped_header_len,
+                                          flags);
+  
+  printf("zipped_header_len: %u, packed_size: %u", zipped_header_len, packed_size);
+
+  spdy_session_queue_frame(session, packed_frame, packed_size);
+
+  return 0;
+}
+
+
+int spdy_session_send_rst_stream(spdy_session_t *session, uint32_t stream_id, uint32_t status, uint8_t flags)
+{
+  uint8_t *packed_frame;
+  uint32_t packed_size;
+  packed_frame = malloc(SPDY_SESSION_FRAME_PACK_BUFFER_SIZE);
+
+  packed_size = spdy_frame_pack_rst_stream(packed_frame, SPDY_SESSION_FRAME_PACK_BUFFER_SIZE,
+                                           stream_id,
+                                           status,
+                                           flags);
+
+  spdy_session_queue_frame(session, packed_frame, packed_size);
+
+  return 0;
+}
+
+
+int spdy_session_send_data(spdy_session_t *session, uint32_t stream_id, uint8_t *data, size_t data_len, uint8_t flags)
+{
+  uint8_t *packed_frame;
+  uint32_t packed_size;
+  packed_frame = malloc(SPDY_SESSION_FRAME_PACK_BUFFER_SIZE);
+
+  packed_size = spdy_frame_pack_data(packed_frame, SPDY_SESSION_FRAME_PACK_BUFFER_SIZE,
+                                    stream_id,
+                                    data,
+                                    data_len,
+                                    flags);
+
+  spdy_session_queue_frame(session, packed_frame, packed_size);
+
+  return 0;
+}
+
+
 
 int spdy_session_queue_frame(spdy_session_t *session, uint8_t *data, size_t length)
 {
